@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MyNAS</title>
+</head>
+<body>
+    <div class="container">
+        <!-- 图片上传区域 -->
+        <div id="upload-section" class="section">
+            <h2>图片上传</h2>
+            <div class="upload-area">
+                <div class="upload-box">
+                    <input type="file" id="image-upload" accept="image/*" multiple>
+                    <div class="upload-placeholder">
+                        <svg class="upload-icon" viewBox="0 0 24 24" width="48" height="48">
+                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                        </svg>
+                        <p>点击或拖拽图片到此处</p>
+                        <p class="upload-hint">支持 jpg、png、gif 格式</p>
+                    </div>
+                </div>
+                <div class="upload-progress" style="display: none;">
+                    <div class="progress-list"></div>
+                </div>
+                <button id="upload-btn" class="upload-button">
+                    <span class="button-text">开始上传</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 图片展示区域 -->
+        <div id="gallery" class="section">
+            <h2>图片库</h2>
+            <div id="image-grid"></div>
+        </div>
+    </div>
+</body>
+</html> 

@@ -1,0 +1,321 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f5f5f5;
+    -webkit-font-smoothing: antialiased;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    -webkit-appearance: none;
+}
+
+button {
+    background-color: #007AFF;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:active {
+    background-color: #0056b3;
+}
+
+#connection-status {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 6px;
+}
+
+/* 上传区域样式 */
+.upload-area {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.upload-box {
+    position: relative;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    background-color: #fafafa;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-box:hover,
+.upload-box.dragover {
+    border-color: #2196f3;
+    background-color: #f0f7ff;
+}
+
+.upload-box input[type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.upload-placeholder {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+}
+
+.upload-icon {
+    width: 24px;
+    height: 24px;
+    fill: #666;
+    transition: fill 0.3s ease;
+    flex-shrink: 0;
+}
+
+.upload-box:hover .upload-icon {
+    fill: #2196f3;
+}
+
+.upload-placeholder p {
+    color: #666;
+    margin: 0;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.upload-hint {
+    display: none;
+}
+
+.upload-button {
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+}
+
+.upload-button:hover {
+    background-color: #1976d2;
+}
+
+.upload-button:active {
+    background-color: #1565c0;
+}
+
+.upload-progress {
+    width: 100%;
+    margin: 5px 0;
+}
+
+.progress-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.progress-item {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 8px;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3px;
+    font-size: 12px;
+    color: #666;
+}
+
+.progress-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 8px;
+}
+
+.progress-percentage {
+    flex-shrink: 0;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background-color: #f0f0f0;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-bar-inner {
+    width: 0;
+    height: 100%;
+    background-color: #2196f3;
+    transition: width 0.3s ease;
+}
+
+.progress-item.completed {
+    opacity: 0.7;
+}
+
+.progress-item.completed .progress-bar-inner {
+    background-color: #4caf50;
+}
+
+.progress-item.error {
+    opacity: 0.7;
+}
+
+.progress-item.error .progress-bar-inner {
+    background-color: #f44336;
+}
+
+/* 图片网格样式 */
+#image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
+}
+
+.image-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.image-item:hover {
+    transform: translateY(-2px);
+}
+
+.image-item img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    .section {
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+    
+    h2 {
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+    
+    .upload-box {
+        padding: 10px;
+        min-height: 60px;
+    }
+    
+    .upload-placeholder {
+        gap: 8px;
+    }
+    
+    .upload-icon {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .upload-placeholder p {
+        font-size: 13px;
+    }
+    
+    .upload-button {
+        padding: 8px 16px;
+        font-size: 13px;
+        height: 36px;
+    }
+
+    #image-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+    }
+
+    .image-item img {
+        height: 150px;
+    }
+}
+
+/* iOS 特定优化 */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    input, button {
+        font-size: 16px; /* 防止 iOS 自动缩放 */
+    }
+    
+    .section {
+        padding: 15px;
+    }
+} 

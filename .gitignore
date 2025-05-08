@@ -1,0 +1,46 @@
+# Node.js 依赖目录
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# 环境配置文件
+.env
+.env.local
+.env.*.local
+
+# 构建输出目录
+dist/
+build/
+
+# 日志文件
+logs/
+*.log
+
+# 运行时数据
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# 测试覆盖率目录
+coverage/
+
+# IDE 和编辑器文件
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# 项目特定文件
+uploads/
+uploads/thumbnails/
+*.db
+*.sqlite
+*.sqlite3
+
+# 临时文件
+tmp/
+temp/ 
