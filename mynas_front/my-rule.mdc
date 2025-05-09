@@ -1,7 +1,7 @@
 ---
-description: 
-globs: 
-alwaysApply: true
+description:
+globs:
+alwaysApply: false
 ---
 # MyNAS 前端项目结构规范
 

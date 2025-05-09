@@ -46,19 +46,41 @@ input {
     -webkit-appearance: none;
 }
 
-button {
-    background-color: #007AFF;
+/* 统一按钮样式 */
+.button {
+    background-color: #2196f3;
     color: white;
     border: none;
-    padding: 12px 20px;
     border-radius: 8px;
-    font-size: 16px;
+    padding: 10px 20px;
+    font-size: 14px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
 }
 
-button:active {
-    background-color: #0056b3;
+.button:hover {
+    background-color: #1976d2;
+}
+
+.button:active {
+    background-color: #1565c0;
+}
+
+.button.primary {
+    background-color: #2196f3;
+}
+
+.button.primary:hover {
+    background-color: #1976d2;
+}
+
+.button.primary:active {
+    background-color: #1565c0;
 }
 
 #connection-status {
@@ -317,5 +339,108 @@ button:active {
     
     .section {
         padding: 15px;
+    }
+}
+
+/* 导航栏样式 */
+.nav-bar {
+    background-color: #f8f9fa;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nav-links {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.nav-link {
+    color: #333;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.nav-link:hover {
+    background-color: #e9ecef;
+}
+
+/* 设置页面样式 */
+.settings-group {
+    margin-bottom: 20px;
+}
+
+.settings-group h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.setting-item {
+    margin-bottom: 15px;
+}
+
+.setting-item label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+    font-weight: 500;
+}
+
+.setting-item .setting-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    -webkit-appearance: none;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+}
+
+.input-group .setting-input {
+    flex: 1;
+}
+
+.input-group .button {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.settings-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* 响应式设计补充 */
+@media (max-width: 768px) {
+    .settings-group h3 {
+        font-size: 16px;
+    }
+
+    .setting-item label {
+        font-size: 14px;
+    }
+
+    .input-group {
+        flex-direction: column;
+    }
+
+    .input-group .button {
+        width: 100%;
+    }
+
+    .settings-actions {
+        flex-direction: column;
+    }
+
+    .settings-actions .button {
+        width: 100%;
     }
 } 

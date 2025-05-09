@@ -1,6 +1,6 @@
-import './css/style.css';
-import { ImageUploader } from './js/upload';
-import { ImageGallery } from './js/gallery';
+import '../../css/style.css';
+import { ImageUploader } from './upload';
+import { ImageGallery } from './gallery';
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', () => {

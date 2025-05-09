@@ -3,10 +3,13 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
     mode: 'development',
-    entry: './src/index.js',
+    entry: {
+        index: './src/js/index/index.js',
+        settings: './src/js/settings/index.js'
+    },
     output: {
         path: path.resolve(__dirname, 'dist'),
-        filename: 'bundle.js',
+        filename: '[name].bundle.js',
     },
     module: {
         rules: [
@@ -32,7 +35,14 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: './src/index.html'
+            template: './src/pages/index/index.html',
+            filename: 'index.html',
+            chunks: ['index']
+        }),
+        new HtmlWebpackPlugin({
+            template: './src/pages/settings/index.html',
+            filename: 'settings.html',
+            chunks: ['settings']
         })
     ],
     devServer: {
