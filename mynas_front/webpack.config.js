@@ -5,7 +5,8 @@ module.exports = {
     mode: 'development',
     entry: {
         index: './src/js/index/index.js',
-        settings: './src/js/settings/index.js'
+        settings: './src/js/settings/index.js',
+        login: './src/js/login/index.js'
     },
     output: {
         path: path.resolve(__dirname, 'dist'),
@@ -43,6 +44,11 @@ module.exports = {
             template: './src/pages/settings/index.html',
             filename: 'settings.html',
             chunks: ['settings']
+        }),
+        new HtmlWebpackPlugin({
+            template: './src/pages/login/index.html',
+            filename: 'login.html',
+            chunks: ['login']
         })
     ],
     devServer: {

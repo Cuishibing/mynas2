@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MyNAS - 登录</title>
+</head>
+<body>
+    <div class="container">
+        <!-- 导航栏 -->
+        <nav class="nav-bar">
+            <div class="nav-brand">
+                <svg class="app-icon" viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/>
+                </svg>
+                <span class="app-name">MyNAS</span>
+            </div>
+        </nav>
+
+        <div class="login-container">
+            <div class="section">
+                <h2>用户登录</h2>
+                <div class="form-group">
+                    <div class="setting-item">
+                        <label for="username">用户名</label>
+                        <input type="text" id="username" class="setting-input" 
+                               pattern="[a-zA-Z0-9_-]+" 
+                               title="用户名只能包含字母、数字、下划线和连字符"
+                               placeholder="请输入用户名">
+                        <div class="input-hint">用户名只能包含字母、数字、下划线和连字符</div>
+                    </div>
+                    <div class="setting-item">
+                        <label for="password">密码</label>
+                        <input type="password" id="password" class="setting-input" 
+                               placeholder="请输入密码">
+                    </div>
+                    <div class="login-actions">
+                        <button id="login-btn" class="button primary">登录</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
