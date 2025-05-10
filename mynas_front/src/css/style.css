@@ -447,25 +447,123 @@ input {
 
 /* 登录页面样式 */
 .login-container {
-    max-width: 400px;
-    margin: 2rem auto;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
 }
 
-.input-hint {
-    font-size: 12px;
+.login-section {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-section h2 {
+    margin: 0 0 1.5rem;
+    color: #333;
+    text-align: center;
+}
+
+.login-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.login-form-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.login-form-item label {
     color: #666;
-    margin-top: 4px;
+    font-size: 0.9rem;
+}
+
+.login-input {
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.login-input:focus {
+    border-color: #2196f3;
+    outline: none;
+}
+
+.login-input-hint {
+    font-size: 0.8rem;
+    color: #999;
+    margin-top: 0.25rem;
 }
 
 .login-actions {
-    margin-top: 20px;
     display: flex;
-    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
 }
 
-.login-actions .button {
-    min-width: 200px;
-    width: 100%;
+.login-button {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.login-button:active {
+    transform: scale(0.98);
+}
+
+.login-button.primary {
+    background-color: #2196f3;
+    color: white;
+}
+
+.login-button.primary:hover {
+    background-color: #1976d2;
+}
+
+.login-button:not(.primary) {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+}
+
+.login-button:not(.primary):hover {
+    background-color: #388e3c;
+}
+
+/* 登录页面响应式调整 */
+@media (max-width: 480px) {
+    .login-container {
+        padding: 1rem;
+    }
+    
+    .login-section {
+        padding: 1.5rem;
+    }
+    
+    .login-actions {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .login-button {
+        width: 100%;
+    }
 }
 
 /* 输入验证样式 */

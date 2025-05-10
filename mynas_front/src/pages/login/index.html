@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MyNAS - 登录</title>
+    <link rel="stylesheet" href="../../css/style.css">
 </head>
 <body>
     <div class="container">
@@ -26,25 +27,25 @@
         </nav>
 
         <div class="login-container">
-            <div class="section">
+            <div class="login-section">
                 <h2>用户登录</h2>
-                <div class="form-group">
-                    <div class="setting-item">
+                <div class="login-form-group">
+                    <div class="login-form-item">
                         <label for="username">用户名</label>
-                        <input type="text" id="username" class="setting-input" 
+                        <input type="text" id="username" class="login-input" 
                                pattern="[a-zA-Z0-9_-]+" 
                                title="用户名只能包含字母、数字、下划线和连字符"
                                placeholder="请输入用户名">
-                        <div class="input-hint">用户名只能包含字母、数字、下划线和连字符</div>
+                        <div class="login-input-hint">用户名只能包含字母、数字、下划线和连字符</div>
                     </div>
-                    <div class="setting-item">
+                    <div class="login-form-item">
                         <label for="password">密码</label>
-                        <input type="password" id="password" class="setting-input" 
+                        <input type="password" id="password" class="login-input" 
                                placeholder="请输入密码">
                     </div>
                     <div class="login-actions">
-                        <button id="login-btn" class="button primary">登录</button>
-                        <button id="register-btn" class="button">注册</button>
+                        <button id="login-btn" class="login-button primary">登录</button>
+                        <button id="register-btn" class="login-button">注册</button>
                     </div>
                 </div>
             </div>
