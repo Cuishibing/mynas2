@@ -1,4 +1,5 @@
 import { config } from '../config.js';
+import { uploadFile } from '../utils/api.js';
 
 export class ImageUploader {
     constructor() {
@@ -146,9 +147,8 @@ export class ImageUploader {
 
     async isFileExists(filename) {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/images/check/${encodeURIComponent(filename)}`);
-            const data = await response.json();
-            return data.exists;
+            const response = await fetchWithAuth(`/images/check/${encodeURIComponent(filename)}`);
+            return response.exists;
         } catch (error) {
             console.error('检查文件存在失败:', error);
             return false;
@@ -156,52 +156,23 @@ export class ImageUploader {
     }
 
     async uploadFile(file) {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        console.log('上传文件:', {
-            fileName: file.name,
-            fileType: file.type,
-            fileSize: file.size
-        });
-
-        const xhr = new XMLHttpRequest();
-        
-        return new Promise((resolve, reject) => {
-            xhr.upload.addEventListener('progress', (e) => {
-                if (e.lengthComputable) {
-                    const percentComplete = Math.round((e.loaded / e.total) * 100);
-                    this.updateProgress(file.name, percentComplete);
-                }
+        try {
+            const result = await uploadFile('/images/upload', file, (percentComplete) => {
+                this.updateProgress(file.name, percentComplete);
             });
-
-            xhr.addEventListener('load', () => {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    const progressItem = this.progressItems.get(file.name);
-                    if (progressItem) {
-                        progressItem.classList.add('completed');
-                    }
-                    resolve(JSON.parse(xhr.responseText));
-                } else {
-                    const progressItem = this.progressItems.get(file.name);
-                    if (progressItem) {
-                        progressItem.classList.add('error');
-                    }
-                    reject(new Error(xhr.responseText || '上传失败'));
-                }
-            });
-
-            xhr.addEventListener('error', () => {
-                const progressItem = this.progressItems.get(file.name);
-                if (progressItem) {
-                    progressItem.classList.add('error');
-                }
-                reject(new Error('网络错误'));
-            });
-
-            xhr.open('POST', `${this.apiBaseUrl}/images/upload`);
-            xhr.send(formData);
-        });
+            
+            const progressItem = this.progressItems.get(file.name);
+            if (progressItem) {
+                progressItem.classList.add('completed');
+            }
+            return result;
+        } catch (error) {
+            const progressItem = this.progressItems.get(file.name);
+            if (progressItem) {
+                progressItem.classList.add('error');
+            }
+            throw error;
+        }
     }
 
     updateProgress(fileName, percent) {

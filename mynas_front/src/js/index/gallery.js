@@ -1,4 +1,5 @@
 import { config } from '../config.js';
+import { fetchWithAuth } from '../utils/api.js';
 
 export class ImageGallery {
     constructor() {
@@ -38,11 +39,12 @@ export class ImageGallery {
     }
 
     async fetchImages() {
-        const response = await fetch(`${this.apiBaseUrl}/images?page=${this.page}&pageSize=${this.pageSize}`);
-        if (!response.ok) {
-            throw new Error('获取图片列表失败');
+        try {
+            return await fetchWithAuth(`/images?page=${this.page}&pageSize=${this.pageSize}`);
+        } catch (error) {
+            console.error('获取图片列表失败:', error);
+            throw error;
         }
-        return await response.json();
     }
 
     displayImages(newImages) {

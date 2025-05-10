@@ -164,7 +164,7 @@ app.use('/api/thumbnails', express.static(path.join(__dirname, 'uploads', 'thumb
 }));
 
 // 获取所有图片列表
-app.get('/api/images', (req, res) => {
+app.get('/api/images', authenticateToken, (req, res) => {
     console.log('获取图片列表');
     const uploadDir = path.join(__dirname, 'uploads');
     if (!fs.existsSync(uploadDir)) {
@@ -203,7 +203,7 @@ app.get('/api/images', (req, res) => {
 });
 
 // 检查图片是否存在
-app.get('/api/images/check/:filename', (req, res) => {
+app.get('/api/images/check/:filename', authenticateToken, (req, res) => {
     const filename = decodeURIComponent(req.params.filename);
     console.log('检查图片是否存在:', filename);
     
@@ -216,7 +216,7 @@ app.get('/api/images/check/:filename', (req, res) => {
 });
 
 // 上传图片
-app.post('/api/images/upload', (req, res, next) => {
+app.post('/api/images/upload', authenticateToken, (req, res, next) => {
     // 先解析multipart/form-data
     upload.single('file')(req, res, async (err) => {
         if (err) {

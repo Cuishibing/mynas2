@@ -1,7 +1,8 @@
+import { fetchWithAuth } from '../utils/api.js';
+
 export class SettingsManager {
     constructor() {
         this.initializeElements();
-        this.loadSettings();
         this.bindEvents();
     }
 
@@ -33,10 +34,7 @@ export class SettingsManager {
 
     async loadSettings() {
         try {
-            // 从后端获取设置
-            const response = await fetch('/api/settings');
-            const settings = await response.json();
-
+            const settings = await fetchWithAuth('/settings');
             // 更新表单
             this.storagePathInput.value = settings.storagePath || '';
             this.maxStorageInput.value = settings.maxStorage || 100;
@@ -58,8 +56,7 @@ export class SettingsManager {
                 allowedTypes: this.allowedTypesInput.value
             };
 
-            // 发送到后端保存
-            const response = await fetch('/api/settings', {
+            await fetchWithAuth('/settings', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -67,11 +64,7 @@ export class SettingsManager {
                 body: JSON.stringify(settings)
             });
 
-            if (response.ok) {
-                alert('设置保存成功！');
-            } else {
-                throw new Error('保存失败');
-            }
+            alert('设置保存成功！');
         } catch (error) {
             console.error('保存设置失败:', error);
             alert('保存设置失败，请重试');
@@ -88,11 +81,9 @@ export class SettingsManager {
 
     async browseStoragePath() {
         try {
-            // 调用系统文件选择器
-            const response = await fetch('/api/browse-path', {
+            const result = await fetchWithAuth('/browse-path', {
                 method: 'POST'
             });
-            const result = await response.json();
             
             if (result.path) {
                 this.storagePathInput.value = result.path;
