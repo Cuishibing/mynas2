@@ -79,26 +79,34 @@ app.use(cors({
 
 // 确保上传目录存在
 const uploadDir = path.join(__dirname, 'uploads');
-const thumbnailDir = path.join(__dirname, 'uploads', 'thumbnails');
 
-function ensureDirectoriesExist() {
+function ensureDirectoriesExist(username) {
+    const userUploadDir = path.join(uploadDir, username);
+    const userThumbnailDir = path.join(userUploadDir, 'thumbnails');
+
     if (!fs.existsSync(uploadDir)) {
         console.log('创建上传目录:', uploadDir);
         fs.mkdirSync(uploadDir, { recursive: true });
     }
-    if (!fs.existsSync(thumbnailDir)) {
-        console.log('创建缩略图目录:', thumbnailDir);
-        fs.mkdirSync(thumbnailDir, { recursive: true });
+    if (!fs.existsSync(userUploadDir)) {
+        console.log('创建用户上传目录:', userUploadDir);
+        fs.mkdirSync(userUploadDir, { recursive: true });
     }
+    if (!fs.existsSync(userThumbnailDir)) {
+        console.log('创建用户缩略图目录:', userThumbnailDir);
+        fs.mkdirSync(userThumbnailDir, { recursive: true });
+    }
+
+    return {
+        userUploadDir,
+        userThumbnailDir
+    };
 }
 
-// 初始化时创建目录
-ensureDirectoriesExist();
-
 // 生成缩略图
-async function generateThumbnail(filePath, filename) {
-    ensureDirectoriesExist(); // 确保目录存在
-    const thumbnailPath = path.join(thumbnailDir, filename);
+async function generateThumbnail(filePath, filename, username) {
+    const { userThumbnailDir } = ensureDirectoriesExist(username);
+    const thumbnailPath = path.join(userThumbnailDir, filename);
     try {
         await sharp(filePath)
             .resize(300, 300, {
@@ -117,15 +125,16 @@ async function generateThumbnail(filePath, filename) {
 // 配置文件存储
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        ensureDirectoriesExist(); // 确保目录存在
-        cb(null, uploadDir);
+        const { userUploadDir } = ensureDirectoriesExist(req.user.username);
+        cb(null, userUploadDir);
     },
     filename: (req, file, cb) => {
         // 使用原始文件名
         const filename = file.originalname;
         console.log('上传文件信息:', {
             originalname: file.originalname,
-            mimetype: file.mimetype
+            mimetype: file.mimetype,
+            username: req.user.username
         });
         
         cb(null, filename);
@@ -154,7 +163,7 @@ app.use('/api/images', express.static(path.join(__dirname, 'uploads'), {
 }));
 
 // 提供缩略图访问
-app.use('/api/thumbnails', express.static(path.join(__dirname, 'uploads', 'thumbnails'), {
+app.use('/api/thumbnails', express.static(path.join(__dirname, 'uploads'), {
     setHeaders: (res, path) => {
         res.set('Access-Control-Allow-Origin', '*');
         res.set('Access-Control-Allow-Methods', 'GET');
@@ -166,8 +175,8 @@ app.use('/api/thumbnails', express.static(path.join(__dirname, 'uploads', 'thumb
 // 获取所有图片列表
 app.get('/api/images', authenticateToken, (req, res) => {
     console.log('获取图片列表');
-    const uploadDir = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadDir)) {
+    const userUploadDir = path.join(uploadDir, req.user.username);
+    if (!fs.existsSync(userUploadDir)) {
         return res.json({ images: [], total: 0 });
     }
 
@@ -176,14 +185,14 @@ app.get('/api/images', authenticateToken, (req, res) => {
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
 
-    const allFiles = fs.readdirSync(uploadDir)
-        .filter(file => /\.(jpg|jpeg|png|gif)$/i.test(file));
+    const allFiles = fs.readdirSync(userUploadDir)
+        .filter(file => /\.(jpg|jpeg|png|gif)$/i.test(file) && !file.includes('thumbnails'));
 
     const total = allFiles.length;
     const files = allFiles.slice(start, end).map(file => {
         // 移除/api前缀
-        const fullPath = `/images/${encodeURIComponent(file)}`;
-        const thumbnailPath = `/thumbnails/${encodeURIComponent(file)}`;
+        const fullPath = `/images/${req.user.username}/${encodeURIComponent(file)}`;
+        const thumbnailPath = `/thumbnails/${req.user.username}/thumbnails/${encodeURIComponent(file)}`;
         console.log('处理文件:', { file, fullPath, thumbnailPath });
         return {
             name: file,
@@ -207,8 +216,8 @@ app.get('/api/images/check/:filename', authenticateToken, (req, res) => {
     const filename = decodeURIComponent(req.params.filename);
     console.log('检查图片是否存在:', filename);
     
-    const uploadDir = path.join(__dirname, 'uploads');
-    const files = fs.readdirSync(uploadDir);
+    const userUploadDir = path.join(uploadDir, req.user.username);
+    const files = fs.existsSync(userUploadDir) ? fs.readdirSync(userUploadDir) : [];
     const exists = files.includes(filename);
     
     console.log('检查结果:', { filename, exists });
@@ -226,7 +235,8 @@ app.post('/api/images/upload', authenticateToken, (req, res, next) => {
 
         console.log('上传图片请求:', {
             body: req.body,
-            file: req.file
+            file: req.file,
+            username: req.user.username
         });
 
         if (!req.file) {
@@ -235,14 +245,14 @@ app.post('/api/images/upload', authenticateToken, (req, res, next) => {
         }
 
         // 生成缩略图
-        await generateThumbnail(req.file.path, req.file.filename);
+        await generateThumbnail(req.file.path, req.file.filename, req.user.username);
 
         res.json({
             success: true,
             file: {
                 name: req.file.originalname,
-                path: `/images/${encodeURIComponent(req.file.filename)}`,
-                thumbnail: `/thumbnails/${encodeURIComponent(req.file.filename)}`
+                path: `/images/${req.user.username}/${encodeURIComponent(req.file.filename)}`,
+                thumbnail: `/thumbnails/${req.user.username}/thumbnails/${encodeURIComponent(req.file.filename)}`
             }
         });
     });
