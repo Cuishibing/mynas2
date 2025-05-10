@@ -1,6 +1,8 @@
+import { config } from '../config.js';
+
 export class ImageUploader {
     constructor() {
-        this.apiBaseUrl = 'http://10.42.0.172:3000/api'; // API 基础地址
+        this.apiBaseUrl = config.apiBaseUrl;
         this.uploadQueue = [];
         this.isUploading = false;
         this.progressItems = new Map();

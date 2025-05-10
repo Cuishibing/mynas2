@@ -11,7 +11,15 @@
         <nav class="nav-bar">
             <div class="nav-brand">
                 <svg class="app-icon" viewBox="0 0 24 24" width="24" height="24">
-                    <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/>
+                    <!-- 主存储体 -->
+                    <path d="M4 4h16v12H4z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                    <!-- 数据流动线条 -->
+                    <path d="M8 8h8M8 12h8M8 16h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <!-- 连接点 -->
+                    <circle cx="12" cy="4" r="1.5" fill="currentColor"/>
+                    <circle cx="12" cy="20" r="1.5" fill="currentColor"/>
+                    <!-- 装饰性连接线 -->
+                    <path d="M12 2v2M12 20v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
                 <span class="app-name">MyNAS</span>
             </div>
@@ -36,6 +44,7 @@
                     </div>
                     <div class="login-actions">
                         <button id="login-btn" class="button primary">登录</button>
+                        <button id="register-btn" class="button">注册</button>
                     </div>
                 </div>
             </div>

@@ -1,6 +1,8 @@
+import { config } from '../config.js';
+
 export class ImageGallery {
     constructor() {
-        this.apiBaseUrl = 'http://10.42.0.172:3000/api';
+        this.apiBaseUrl = config.apiBaseUrl;
         this.images = [];
         this.container = document.getElementById('image-grid');
         this.page = 1;

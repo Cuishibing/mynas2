@@ -485,15 +485,24 @@ input:valid {
 .nav-brand {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
 }
 
 .app-icon {
-    fill: #2196f3;
+    width: 32px;
+    height: 32px;
+    color: #2196f3;
+    filter: drop-shadow(0 2px 4px rgba(33, 150, 243, 0.2));
+    transition: transform 0.3s ease;
+}
+
+.nav-brand:hover .app-icon {
+    transform: scale(1.1);
 }
 
 .app-name {
-    font-size: 20px;
-    font-weight: 500;
+    font-size: 24px;
+    font-weight: 600;
     color: #333;
+    letter-spacing: -0.5px;
 } 

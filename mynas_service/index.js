@@ -4,9 +4,60 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const port = 3000;
+
+// JWT密钥
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+// 用户数据存储
+const usersFile = path.join(__dirname, 'data', 'users.json');
+
+// 确保用户数据目录存在
+function ensureUsersDataExists() {
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+    }
+    if (!fs.existsSync(usersFile)) {
+        fs.writeFileSync(usersFile, JSON.stringify([]));
+    }
+}
+
+// 初始化用户数据
+ensureUsersDataExists();
+
+// 读取用户数据
+function getUsers() {
+    const data = fs.readFileSync(usersFile, 'utf8');
+    return JSON.parse(data);
+}
+
+// 保存用户数据
+function saveUsers(users) {
+    fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+}
+
+// 验证JWT token的中间件
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ error: '未提供认证token' });
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.status(403).json({ error: 'token无效或已过期' });
+        }
+        req.user = user;
+        next();
+    });
+}
 
 // 添加请求日志中间件
 app.use((req, res, next) => {
@@ -194,6 +245,82 @@ app.post('/api/images/upload', (req, res, next) => {
                 thumbnail: `/thumbnails/${encodeURIComponent(req.file.filename)}`
             }
         });
+    });
+});
+
+// 登录接口
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ error: '用户名和密码不能为空' });
+    }
+
+    const users = getUsers();
+    const user = users.find(u => u.username === username);
+
+    if (!user) {
+        return res.status(401).json({ error: '用户名或密码错误' });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+        return res.status(401).json({ error: '用户名或密码错误' });
+    }
+
+    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '24h' });
+    res.json({
+        success: true,
+        token,
+        user: {
+            id: user.id,
+            username: user.username
+        }
+    });
+});
+
+// 注册接口
+app.post('/api/register', async (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ error: '用户名和密码不能为空' });
+    }
+
+    const users = getUsers();
+    if (users.some(u => u.username === username)) {
+        return res.status(400).json({ error: '用户名已存在' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = {
+        id: Date.now().toString(),
+        username,
+        password: hashedPassword
+    };
+
+    users.push(newUser);
+    saveUsers(users);
+
+    const token = jwt.sign({ id: newUser.id, username: newUser.username }, JWT_SECRET, { expiresIn: '24h' });
+    res.json({
+        success: true,
+        token,
+        user: {
+            id: newUser.id,
+            username: newUser.username
+        }
+    });
+});
+
+// 获取当前用户信息
+app.get('/api/user', authenticateToken, (req, res) => {
+    res.json({
+        success: true,
+        user: {
+            id: req.user.id,
+            username: req.user.username
+        }
     });
 });
 
