@@ -71,8 +71,79 @@ export class ImageGallery {
             const div = document.createElement('div');
             div.className = 'image-item';
             div.appendChild(img);
+
+            // 添加点击事件
+            div.addEventListener('click', () => this.showFullImage(image));
+            
             this.container.appendChild(div);
         });
+    }
+
+    showFullImage(image) {
+        // 禁止页面滚动
+        document.body.style.overflow = 'hidden';
+        
+        // 创建遮罩层
+        const overlay = document.createElement('div');
+        overlay.className = 'image-overlay show';
+        
+        // 创建图片容器
+        const container = document.createElement('div');
+        container.className = 'full-image-container';
+        
+        // 创建加载指示器
+        const loading = document.createElement('div');
+        loading.className = 'image-loading';
+        loading.innerHTML = `
+            <div class="loading-spinner"></div>
+            <div class="loading-text">加载中...</div>
+        `;
+        
+        // 创建大图
+        const fullImage = document.createElement('img');
+        fullImage.src = `${this.apiBaseUrl}${image.path}`;
+        fullImage.alt = image.name;
+        fullImage.className = 'full-image';
+        
+        // 创建关闭按钮
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'close-button';
+        closeBtn.innerHTML = '×';
+        closeBtn.addEventListener('click', () => {
+            document.body.removeChild(overlay);
+            // 恢复页面滚动
+            document.body.style.overflow = '';
+        });
+        
+        // 创建图片信息
+        const info = document.createElement('div');
+        info.className = 'image-info';
+        info.textContent = image.name;
+        
+        // 组装DOM
+        container.appendChild(fullImage);
+        container.appendChild(closeBtn);
+        container.appendChild(info);
+        overlay.appendChild(container);
+        overlay.appendChild(loading);
+        
+        // 点击遮罩层关闭
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                document.body.removeChild(overlay);
+                // 恢复页面滚动
+                document.body.style.overflow = '';
+            }
+        });
+        
+        // 添加到页面
+        document.body.appendChild(overlay);
+        
+        // 图片加载完成后隐藏加载指示器
+        fullImage.onload = () => {
+            loading.style.display = 'none';
+            fullImage.style.opacity = '1';
+        };
     }
 
     handleScroll() {
@@ -137,6 +208,9 @@ export class ImageGallery {
             
             img.onerror = retryLoad;
         };
+        
+        // 添加点击事件
+        imageItem.addEventListener('click', () => this.showFullImage(imageData));
         
         imageItem.appendChild(img);
         this.container.insertBefore(imageItem, this.container.firstChild);
