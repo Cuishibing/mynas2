@@ -7,6 +7,7 @@ export class ImageUploader {
         this.uploadQueue = [];
         this.isUploading = false;
         this.progressItems = new Map();
+        this.totalProgress = 0;
         this.init();
     }
 
@@ -47,6 +48,13 @@ export class ImageUploader {
                 this.uploadBtn.textContent = `上传 ${this.fileInput.files.length} 个文件`;
             }
         });
+
+        // 添加进度条展开/收起功能
+        this.progressBar.addEventListener('click', (e) => {
+            if (e.target === this.progressBar) {
+                this.progressList.classList.toggle('collapsed');
+            }
+        });
     }
 
     createProgressItem(fileName) {
@@ -71,9 +79,21 @@ export class ImageUploader {
             return;
         }
 
+        // 如果正在上传，直接返回
+        if (this.isUploading) {
+            return;
+        }
+
+        // 禁用上传按钮和文件选择
+        this.uploadBtn.disabled = true;
+        this.fileInput.disabled = true;
+        this.uploadBox.style.pointerEvents = 'none';
+        this.uploadBox.style.opacity = '0.6';
+
         // 清空进度列表
         this.progressList.innerHTML = '';
         this.progressItems.clear();
+        this.totalProgress = 0;
 
         // 将文件添加到队列并创建进度条
         for (const file of files) {
@@ -89,6 +109,7 @@ export class ImageUploader {
 
         // 显示进度条区域
         this.progressBar.style.display = 'block';
+        this.progressList.classList.remove('collapsed');
 
         // 开始处理队列
         if (!this.isUploading) {
@@ -102,6 +123,13 @@ export class ImageUploader {
             this.progressBar.style.display = 'none';
             this.fileInput.value = '';
             this.uploadBtn.textContent = '开始上传';
+            this.uploadBtn.style.background = '#2196f3';
+            
+            // 重新启用上传按钮和文件选择
+            this.uploadBtn.disabled = false;
+            this.fileInput.disabled = false;
+            this.uploadBox.style.pointerEvents = 'auto';
+            this.uploadBox.style.opacity = '1';
             return;
         }
 
@@ -181,5 +209,15 @@ export class ImageUploader {
             progressItem.querySelector('.progress-percentage').textContent = `${percent}%`;
             progressItem.querySelector('.progress-bar-inner').style.width = `${percent}%`;
         }
+
+        // 更新总进度
+        const totalFiles = this.uploadQueue.length + this.progressItems.size;
+        const completedFiles = Array.from(this.progressItems.values())
+            .filter(item => item.classList.contains('completed')).length;
+        this.totalProgress = Math.round(((completedFiles * 100 + percent) / totalFiles));
+        
+        // 更新按钮文字和样式
+        this.uploadBtn.textContent = `上传中 ${this.totalProgress}%`;
+        this.uploadBtn.style.background = `linear-gradient(to right, #2196f3 ${this.totalProgress}%, #e0e0e0 ${this.totalProgress}%)`;
     }
 } 

@@ -96,9 +96,19 @@ export class ImageGallery {
             return;
         }
 
-        // 添加到图片数组
+        // 添加到图片数组的开头
         this.images.unshift(imageData);
         this.total++;
+
+        // 如果当前显示的图片数量超过pageSize，移除最后一个
+        if (this.images.length > this.pageSize) {
+            this.images = this.images.slice(0, this.pageSize);
+            // 移除最后一个图片元素
+            const lastImage = this.container.lastElementChild;
+            if (lastImage) {
+                this.container.removeChild(lastImage);
+            }
+        }
 
         // 创建新的图片元素
         const imageItem = document.createElement('div');
