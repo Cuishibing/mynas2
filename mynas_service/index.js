@@ -13,6 +13,9 @@ const port = 3000;
 // JWT密钥
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+// 从启动参数获取上传目录，默认为当前目录下的uploads
+const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
+
 // 用户数据存储
 const usersFile = path.join(__dirname, 'data', 'users.json');
 
@@ -76,9 +79,6 @@ app.use(cors({
     credentials: true,
     maxAge: 86400 // 预检请求缓存24小时
 }));
-
-// 确保上传目录存在
-const uploadDir = path.join(__dirname, 'uploads');
 
 function ensureDirectoriesExist(username) {
     const userUploadDir = path.join(uploadDir, username);
@@ -343,4 +343,5 @@ app.use((err, req, res, next) => {
 // 启动服务器
 app.listen(port, '0.0.0.0', () => {
     console.log(`服务器运行在 http://localhost:${port}`);
+    console.log(`上传目录: ${uploadDir}`);
 }); 
