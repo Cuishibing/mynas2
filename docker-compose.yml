@@ -1,0 +1,29 @@
+version: '2'
+
+services:
+  backend:
+    build: 
+      context: ./mynas_service
+      dockerfile: Dockerfile
+    container_name: mynas-backend
+    restart: always
+    networks:
+      - mynas-network
+
+  frontend:
+    build:
+      context: ./mynas_front
+      dockerfile: Dockerfile
+    container_name: mynas-frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+    networks:
+      - mynas-network
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+networks:
+  mynas-network:
+    driver: bridge 
