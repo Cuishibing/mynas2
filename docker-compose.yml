@@ -8,7 +8,9 @@ services:
     container_name: mynas-backend
     restart: always
     environment:
-      - UPLOAD_DIR=/home/cui/下载/temp
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      - /home/cui/下载/temp:/app/uploads
     networks:
       - mynas-network
 
