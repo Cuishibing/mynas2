@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const webpack = require('webpack');
 
 module.exports = {
     mode: 'development',
@@ -49,6 +50,9 @@ module.exports = {
             template: './src/pages/login/index.html',
             filename: 'login.html',
             chunks: ['login']
+        }),
+        new webpack.DefinePlugin({
+            'process.env.API_BASE_URL': JSON.stringify(process.env.API_BASE_URL || 'http://10.42.0.172:3000/api')
         })
     ],
     devServer: {

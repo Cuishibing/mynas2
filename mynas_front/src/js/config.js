@@ -1,7 +1,7 @@
 // 服务器配置
 export const config = {
     // API服务器地址
-    apiBaseUrl: 'http://10.42.0.172:3000/api',
+    apiBaseUrl: process.env.API_BASE_URL || 'http://10.42.0.172:3000/api',
     
     // 其他配置项
     upload: {

@@ -7,6 +7,8 @@ services:
       dockerfile: Dockerfile
     container_name: mynas-backend
     restart: always
+    environment:
+      - UPLOAD_DIR=/home/cui/下载/temp
     networks:
       - mynas-network
 
@@ -14,6 +16,8 @@ services:
     build:
       context: ./mynas_front
       dockerfile: Dockerfile
+      args:
+        - API_BASE_URL=/api
     container_name: mynas-frontend
     ports:
       - "8080:8080"

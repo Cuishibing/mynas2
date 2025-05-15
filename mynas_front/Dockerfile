@@ -6,7 +6,8 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
-RUN npm run build
+ARG API_BASE_URL=/api
+RUN API_BASE_URL=${API_BASE_URL} npm run build
 
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
