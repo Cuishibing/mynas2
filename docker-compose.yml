@@ -9,8 +9,10 @@ services:
     restart: always
     environment:
       - UPLOAD_DIR=/app/uploads
+      - DATA_DIR=/app/data
     volumes:
-      - /home/cui/下载/temp:/app/uploads
+      - /media/cui/283DFEAE296ABC8A/data/mynas2:/app/uploads
+      - /media/cui/283DFEAE296ABC8A/data/mynas2/appdata:/app/data
     networks:
       - mynas-network
 

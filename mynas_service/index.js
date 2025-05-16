@@ -16,12 +16,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 // 从启动参数获取上传目录，默认为当前目录下的uploads
 const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 
-// 用户数据存储
-const usersFile = path.join(__dirname, 'data', 'users.json');
+// 从启动参数获取用户数据存储目录，默认为当前目录下的data
+const dataDir = process.env.DATA_DIR || path.join(__dirname, 'data');
+const usersFile = path.join(dataDir, 'users.json');
 
 // 确保用户数据目录存在
 function ensureUsersDataExists() {
-    const dataDir = path.join(__dirname, 'data');
     if (!fs.existsSync(dataDir)) {
         fs.mkdirSync(dataDir, { recursive: true });
     }
