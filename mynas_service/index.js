@@ -6,6 +6,7 @@ const path = require('path');
 const sharp = require('sharp');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { IMAGE_EXTENSION_REGEX, THUMBNAIL_CONFIG } = require('./config');
 
 const app = express();
 const port = 3000;
@@ -109,11 +110,11 @@ async function generateThumbnail(filePath, filename, username) {
     const thumbnailPath = path.join(userThumbnailDir, filename);
     try {
         await sharp(filePath)
-            .resize(300, 300, {
+            .resize(THUMBNAIL_CONFIG.width, THUMBNAIL_CONFIG.height, {
                 fit: 'inside',
                 withoutEnlargement: true
             })
-            .jpeg({ quality: 80 })
+            .jpeg({ quality: THUMBNAIL_CONFIG.quality })
             .toFile(thumbnailPath);
         return true;
     } catch (error) {
@@ -340,8 +341,57 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: err.message });
 });
 
+// 检查并生成缺失的缩略图
+let isCheckingThumbnails = false;
+
+async function checkAndGenerateMissingThumbnails() {
+    if (isCheckingThumbnails) {
+        console.log('缩略图检查正在进行中，跳过本次执行');
+        return;
+    }
+
+    try {
+        isCheckingThumbnails = true;
+        console.log('开始检查缺失的缩略图...');
+        const users = getUsers();
+        
+        for (const user of users) {
+            const userUploadDir = path.join(uploadDir, user.username);
+            const userThumbnailDir = path.join(userUploadDir, 'thumbnails');
+            
+            if (!fs.existsSync(userUploadDir)) {
+                console.log(`用户 ${user.username} 的上传目录不存在，跳过`);
+                continue;
+            }
+            
+            const files = fs.readdirSync(userUploadDir)
+                .filter(file => IMAGE_EXTENSION_REGEX.test(file) && !file.includes('thumbnails'));
+                
+            for (const file of files) {
+                const thumbnailPath = path.join(userThumbnailDir, file);
+                if (!fs.existsSync(thumbnailPath)) {
+                    console.log(`为用户 ${user.username} 生成文件 ${file} 的缩略图`);
+                    const filePath = path.join(userUploadDir, file);
+                    await generateThumbnail(filePath, file, user.username);
+                }
+            }
+        }
+        console.log('缩略图检查完成');
+    } catch (error) {
+        console.error('缩略图检查过程中发生错误:', error);
+    } finally {
+        isCheckingThumbnails = false;
+    }
+}
+
 // 启动服务器
-app.listen(port, '0.0.0.0', () => {
+app.listen(port, '0.0.0.0', async () => {
     console.log(`服务器运行在 http://localhost:${port}`);
     console.log(`上传目录: ${uploadDir}`);
+    
+    // 启动时立即执行一次检查
+    await checkAndGenerateMissingThumbnails();
+    
+    // 设置定时任务，每分钟执行一次
+    setInterval(checkAndGenerateMissingThumbnails, 60 * 1000);
 }); 
