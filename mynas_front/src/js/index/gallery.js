@@ -49,6 +49,9 @@ export class ImageGallery {
 
     displayImages(newImages) {
         newImages.forEach(image => {
+            const div = document.createElement('div');
+            div.className = 'image-item';
+            
             const img = document.createElement('img');
             img.src = `${this.apiBaseUrl}${image.thumbnail}`;
             img.alt = image.name;
@@ -68,11 +71,44 @@ export class ImageGallery {
                 }
             };
 
-            const div = document.createElement('div');
-            div.className = 'image-item';
-            div.appendChild(img);
+            // 创建删除按钮
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'image-delete-btn';
+            deleteBtn.innerHTML = '删除';
+            deleteBtn.addEventListener('click', async (e) => {
+                e.stopPropagation(); // 阻止事件冒泡，避免触发图片预览
+                if (confirm('确定要删除这张图片吗？')) {
+                    try {
+                        const response = await fetchWithAuth('/images/delete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                filename: image.name
+                            })
+                        });
+                        
+                        if (response.success) {
+                            // 从DOM中移除图片元素
+                            div.remove();
+                            // 从图片数组中移除
+                            this.images = this.images.filter(img => img.name !== image.name);
+                            this.total--;
+                        } else {
+                            alert('删除失败');
+                        }
+                    } catch (error) {
+                        console.error('删除图片失败:', error);
+                        alert('删除失败');
+                    }
+                }
+            });
 
-            // 添加点击事件
+            div.appendChild(img);
+            div.appendChild(deleteBtn);
+
+            // 添加点击事件（预览图片）
             div.addEventListener('click', () => this.showFullImage(image));
             
             this.container.appendChild(div);
@@ -114,7 +150,7 @@ export class ImageGallery {
             // 恢复页面滚动
             document.body.style.overflow = '';
         });
-        
+
         // 创建图片信息
         const info = document.createElement('div');
         info.className = 'image-info';

@@ -153,6 +153,42 @@ const upload = multer({
 // 解析 JSON 请求体
 app.use(express.json());
 
+// 删除图片
+app.post('/api/images/delete', authenticateToken, (req, res) => {
+    const { filename } = req.body;
+    if (!filename) {
+        return res.status(400).json({ error: '文件名不能为空' });
+    }
+
+    const decodedFilename = decodeURIComponent(filename);
+    console.log('删除图片:', decodedFilename);
+    
+    const userUploadDir = path.join(uploadDir, req.user.username);
+    const userThumbnailDir = path.join(userUploadDir, 'thumbnails');
+    const filePath = path.join(userUploadDir, decodedFilename);
+    const thumbnailPath = path.join(userThumbnailDir, decodedFilename);
+    
+    try {
+        // 检查文件是否存在
+        if (!fs.existsSync(filePath)) {
+            console.error('文件不存在:', filePath);
+            return res.status(404).json({ error: '文件不存在' });
+        }
+        
+        // 删除原图和缩略图
+        fs.unlinkSync(filePath);
+        if (fs.existsSync(thumbnailPath)) {
+            fs.unlinkSync(thumbnailPath);
+        }
+        
+        console.log('图片删除成功:', decodedFilename);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('删除图片失败:', error);
+        res.status(500).json({ error: '删除图片失败' });
+    }
+});
+
 // 提供静态文件访问
 app.use('/api/images', express.static(path.join(__dirname, 'uploads'), {
     setHeaders: (res, path) => {
