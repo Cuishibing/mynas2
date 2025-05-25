@@ -40,6 +40,7 @@ uploads/thumbnails/
 *.db
 *.sqlite
 *.sqlite3
+data/
 
 # 临时文件
 tmp/

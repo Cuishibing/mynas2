@@ -1,13 +1,13 @@
-import { config } from '../../js/config.js';
-import { fetchWithAuth } from '../../js/utils/api.js';
-import { ImageGallery } from '../../js/index/gallery.js';
+import { config } from '../config.js';
+import { fetchWithAuth } from '../utils/api.js';
+import { ImageGallery } from '../index/gallery.js';
 
 export class AlbumView extends ImageGallery {
     constructor() {
         super();
         this.albumName = new URLSearchParams(window.location.search).get('name');
         if (!this.albumName) {
-            window.location.href = '/pages/settings/settings.html';
+            window.location.href = '/settings.html';
             return;
         }
         this.init();

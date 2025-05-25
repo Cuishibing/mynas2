@@ -7,7 +7,8 @@ module.exports = {
     entry: {
         index: './src/js/index/index.js',
         settings: './src/js/settings/index.js',
-        login: './src/js/login/index.js'
+        login: './src/js/login/index.js',
+        album: './src/js/album/index.js'
     },
     output: {
         path: path.resolve(__dirname, 'dist'),
@@ -51,6 +52,11 @@ module.exports = {
             filename: 'login.html',
             chunks: ['login']
         }),
+        new HtmlWebpackPlugin({
+            template: './src/pages/album/album.html',
+            filename: 'album.html',
+            chunks: ['album']
+        }),
         new webpack.DefinePlugin({
             'process.env.API_BASE_URL': JSON.stringify(process.env.API_BASE_URL || 'http://10.42.0.172:3000/api')
         })
@@ -61,5 +67,6 @@ module.exports = {
         },
         compress: true,
         port: 9000,
+        historyApiFallback: true
     }
 }; 
