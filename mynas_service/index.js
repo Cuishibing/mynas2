@@ -371,6 +371,250 @@ app.get('/api/user', authenticateToken, (req, res) => {
     });
 });
 
+// 获取相册列表
+app.get('/api/albums', authenticateToken, (req, res) => {
+    try {
+        const userDir = path.join(dataDir, req.user.username);
+        if (!fs.existsSync(userDir)) {
+            return res.json({
+                success: true,
+                albums: []
+            });
+        }
+
+        const files = fs.readdirSync(userDir);
+        const albums = files
+            .filter(file => file.startsWith('xiangce_'))
+            .map(file => ({
+                name: file.replace('xiangce_', '').replace('.json', ''),
+                path: file
+            }));
+
+        // 获取每个相册的图片数量
+        const albumsWithCount = albums.map(album => {
+            try {
+                const content = fs.readFileSync(path.join(userDir, album.path), 'utf8');
+                const images = JSON.parse(content);
+                return {
+                    ...album,
+                    count: images.length
+                };
+            } catch (error) {
+                console.error(`读取相册 ${album.name} 失败:`, error);
+                return {
+                    ...album,
+                    count: 0
+                };
+            }
+        });
+
+        res.json({
+            success: true,
+            albums: albumsWithCount
+        });
+    } catch (error) {
+        console.error('获取相册列表失败:', error);
+        res.status(500).json({
+            success: false,
+            message: '获取相册列表失败'
+        });
+    }
+});
+
+// 创建相册
+app.post('/api/albums', authenticateToken, (req, res) => {
+    try {
+        const { name } = req.body;
+        if (!name) {
+            return res.status(400).json({
+                success: false,
+                message: '相册名称不能为空'
+            });
+        }
+
+        const userDir = path.join(dataDir, req.user.username);
+        if (!fs.existsSync(userDir)) {
+            fs.mkdirSync(userDir, { recursive: true });
+        }
+
+        const albumPath = path.join(userDir, `xiangce_${name}.json`);
+
+        // 检查相册是否已存在
+        if (fs.existsSync(albumPath)) {
+            return res.status(400).json({
+                success: false,
+                message: '相册已存在'
+            });
+        }
+
+        // 创建空相册
+        fs.writeFileSync(albumPath, JSON.stringify([]));
+
+        res.json({
+            success: true,
+            message: '相册创建成功'
+        });
+    } catch (error) {
+        console.error('创建相册失败:', error);
+        res.status(500).json({
+            success: false,
+            message: '创建相册失败'
+        });
+    }
+});
+
+// 删除相册
+app.post('/api/albums/delete', authenticateToken, (req, res) => {
+    try {
+        const { name } = req.body;
+        if (!name) {
+            return res.status(400).json({
+                success: false,
+                message: '相册名称不能为空'
+            });
+        }
+
+        const userDir = path.join(dataDir, req.user.username);
+        const albumPath = path.join(userDir, `xiangce_${name}.json`);
+
+        // 检查相册是否存在
+        if (!fs.existsSync(albumPath)) {
+            return res.status(404).json({
+                success: false,
+                message: '相册不存在'
+            });
+        }
+
+        // 删除相册文件
+        fs.unlinkSync(albumPath);
+
+        res.json({
+            success: true,
+            message: '相册删除成功'
+        });
+    } catch (error) {
+        console.error('删除相册失败:', error);
+        res.status(500).json({
+            success: false,
+            message: '删除相册失败'
+        });
+    }
+});
+
+// 获取相册内容
+app.get('/api/albums/:name', authenticateToken, (req, res) => {
+    try {
+        const { name } = req.params;
+        const userDir = path.join(dataDir, req.user.username);
+        const albumPath = path.join(userDir, `xiangce_${name}.json`);
+
+        // 检查相册是否存在
+        if (!fs.existsSync(albumPath)) {
+            return res.status(404).json({
+                success: false,
+                message: '相册不存在'
+            });
+        }
+
+        // 读取相册内容
+        const content = fs.readFileSync(albumPath, 'utf8');
+        const images = JSON.parse(content);
+
+        res.json({
+            success: true,
+            images
+        });
+    } catch (error) {
+        console.error('获取相册内容失败:', error);
+        res.status(500).json({
+            success: false,
+            message: '获取相册内容失败'
+        });
+    }
+});
+
+// 添加图片到相册
+app.post('/api/albums/:name/images', authenticateToken, (req, res) => {
+    try {
+        const { name } = req.params;
+        const { imagePath } = req.body;
+        const userDir = path.join(dataDir, req.user.username);
+        const albumPath = path.join(userDir, `xiangce_${name}.json`);
+
+        // 检查相册是否存在
+        if (!fs.existsSync(albumPath)) {
+            return res.status(404).json({
+                success: false,
+                message: '相册不存在'
+            });
+        }
+
+        // 读取相册内容
+        const content = fs.readFileSync(albumPath, 'utf8');
+        const images = JSON.parse(content);
+
+        // 检查图片是否已在相册中
+        if (images.includes(imagePath)) {
+            return res.status(400).json({
+                success: false,
+                message: '图片已在相册中'
+            });
+        }
+
+        // 添加图片到相册
+        images.push(imagePath);
+        fs.writeFileSync(albumPath, JSON.stringify(images));
+
+        res.json({
+            success: true,
+            message: '添加图片成功'
+        });
+    } catch (error) {
+        console.error('添加图片到相册失败:', error);
+        res.status(500).json({
+            success: false,
+            message: '添加图片到相册失败'
+        });
+    }
+});
+
+// 从相册中移除图片
+app.delete('/api/albums/:name/images', authenticateToken, (req, res) => {
+    try {
+        const { name } = req.params;
+        const { imagePath } = req.body;
+        const userDir = path.join(dataDir, req.user.username);
+        const albumPath = path.join(userDir, `xiangce_${name}.json`);
+
+        // 检查相册是否存在
+        if (!fs.existsSync(albumPath)) {
+            return res.status(404).json({
+                success: false,
+                message: '相册不存在'
+            });
+        }
+
+        // 读取相册内容
+        const content = fs.readFileSync(albumPath, 'utf8');
+        const images = JSON.parse(content);
+
+        // 从相册中移除图片
+        const newImages = images.filter(path => path !== imagePath);
+        fs.writeFileSync(albumPath, JSON.stringify(newImages));
+
+        res.json({
+            success: true,
+            message: '移除图片成功'
+        });
+    } catch (error) {
+        console.error('从相册中移除图片失败:', error);
+        res.status(500).json({
+            success: false,
+            message: '从相册中移除图片失败'
+        });
+    }
+});
+
 // 错误处理中间件
 app.use((err, req, res, next) => {
     console.error('错误:', err);

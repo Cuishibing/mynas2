@@ -1,14 +1,14 @@
 import '../../css/style.css';
-import { SettingsManager } from './settings-manager';
+import { Settings } from './settings';
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', () => {
-    // 初始化设置管理器
-    const settingsManager = new SettingsManager();
+    // 初始化相册管理
+    const settings = new Settings();
 
     // 导出模块到全局作用域（仅用于调试）
     window.app = {
-        settings: settingsManager
+        settings
     };
 
     // 添加错误处理

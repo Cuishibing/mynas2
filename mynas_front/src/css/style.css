@@ -907,4 +907,93 @@ input:valid {
 
 .delete-button:active {
     background-color: #b71c1c;
+}
+
+/* 相册管理样式 */
+.album-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.album-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.album-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.album-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+}
+
+.album-count {
+    font-size: 14px;
+    color: #666;
+}
+
+.album-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.album-actions .button {
+    padding: 6px 12px;
+    font-size: 14px;
+}
+
+.album-actions .button.delete {
+    background-color: #f44336;
+}
+
+.album-actions .button.delete:hover {
+    background-color: #d32f2f;
+}
+
+.album-form {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.album-form .form-group {
+    display: flex;
+    gap: 12px;
+}
+
+.album-form .setting-input {
+    flex: 1;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .album-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .album-actions {
+        width: 100%;
+    }
+
+    .album-actions .button {
+        flex: 1;
+    }
+
+    .album-form .form-group {
+        flex-direction: column;
+    }
 } 
