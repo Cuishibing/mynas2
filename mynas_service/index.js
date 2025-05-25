@@ -109,11 +109,17 @@ async function generateThumbnail(filePath, filename, username) {
     const { userThumbnailDir } = ensureDirectoriesExist(username);
     const thumbnailPath = path.join(userThumbnailDir, filename);
     try {
+        // 读取原始图片的EXIF信息
+        const metadata = await sharp(filePath).metadata();
+        
+        // 生成缩略图时保留EXIF信息
         await sharp(filePath)
+            .rotate() // 自动根据EXIF信息旋转图片
             .resize(THUMBNAIL_CONFIG.width, THUMBNAIL_CONFIG.height, {
                 fit: 'inside',
                 withoutEnlargement: true
             })
+            .withMetadata() // 保留EXIF信息
             .jpeg({ quality: THUMBNAIL_CONFIG.quality })
             .toFile(thumbnailPath);
         return true;

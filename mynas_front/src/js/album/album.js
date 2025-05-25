@@ -5,7 +5,9 @@ import { ImageGallery } from '../index/gallery.js';
 export class AlbumView extends ImageGallery {
     constructor() {
         super();
-        this.albumName = new URLSearchParams(window.location.search).get('name');
+        // 从URL中获取相册名称
+        const params = new URLSearchParams(window.location.search);
+        this.albumName = params.get('name');
         if (!this.albumName) {
             window.location.href = '/settings.html';
             return;
@@ -23,11 +25,16 @@ export class AlbumView extends ImageGallery {
         try {
             const response = await fetchWithAuth(`/albums/${encodeURIComponent(this.albumName)}`);
             if (response.success) {
-                this.images = response.images.map(path => ({
-                    name: path.split('/').pop(),
-                    path: path,
-                    thumbnail: path
-                }));
+                this.images = response.images.map(path => {
+                    const filename = path.split('/').pop();
+                    // 修正缩略图路径格式
+                    const thumbnailPath = `/thumbnails/${path.split('/')[2]}/thumbnails/${filename}`;
+                    return {
+                        name: filename,
+                        path: path,
+                        thumbnail: thumbnailPath
+                    };
+                });
                 this.total = this.images.length;
                 this.displayImages(this.images);
             }

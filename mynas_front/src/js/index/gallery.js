@@ -258,8 +258,110 @@ export class ImageGallery {
         const info = document.createElement('div');
         info.className = 'image-info';
         info.textContent = image.name;
+
+        // 创建左右箭头按钮
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'nav-button prev-button';
+        prevBtn.innerHTML = '❮';
+        
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'nav-button next-button';
+        nextBtn.innerHTML = '❯';
+
+        // 获取当前图片索引
+        let currentIndex = this.images.findIndex(img => img.path === image.path);
+        
+        // 更新导航按钮状态
+        const updateNavButtons = () => {
+            prevBtn.style.display = currentIndex > 0 ? 'flex' : 'none';
+            nextBtn.style.display = currentIndex < this.images.length - 1 ? 'flex' : 'none';
+        };
+        
+        // 显示上一张图片
+        const showPrevImage = () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                const prevImage = this.images[currentIndex];
+                showImage(prevImage);
+                updateNavButtons();
+            }
+        };
+        
+        // 显示下一张图片
+        const showNextImage = () => {
+            if (currentIndex < this.images.length - 1) {
+                currentIndex++;
+                const nextImage = this.images[currentIndex];
+                showImage(nextImage);
+                updateNavButtons();
+            }
+        };
+        
+        // 显示指定图片
+        const showImage = (image) => {
+            loading.style.display = 'flex';
+            fullImage.style.opacity = '0';
+            fullImage.src = `${this.apiBaseUrl}${image.path}`;
+            info.textContent = image.name;
+        };
+        
+        // 添加导航按钮事件监听
+        prevBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showPrevImage();
+        });
+        
+        nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showNextImage();
+        });
+        
+        // 添加键盘事件监听
+        const handleKeyDown = (e) => {
+            if (e.key === 'ArrowLeft') {
+                showPrevImage();
+            } else if (e.key === 'ArrowRight') {
+                showNextImage();
+            } else if (e.key === 'Escape') {
+                document.body.removeChild(overlay);
+                document.body.style.overflow = '';
+            }
+        };
+        
+        document.addEventListener('keydown', handleKeyDown);
+        
+        // 添加触摸滑动支持
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        const handleTouchStart = (e) => {
+            touchStartX = e.touches[0].clientX;
+        };
+        
+        const handleTouchMove = (e) => {
+            touchEndX = e.touches[0].clientX;
+        };
+        
+        const handleTouchEnd = () => {
+            const swipeThreshold = 50;
+            const diff = touchStartX - touchEndX;
+            
+            if (Math.abs(diff) > swipeThreshold) {
+                if (diff > 0) {
+                    showNextImage();
+                } else {
+                    showPrevImage();
+                }
+            }
+        };
+        
+        container.addEventListener('touchstart', handleTouchStart);
+        container.addEventListener('touchmove', handleTouchMove);
+        container.addEventListener('touchend', handleTouchEnd);
         
         // 组装DOM
+        container.appendChild(prevBtn);
+        container.appendChild(nextBtn);
         container.appendChild(fullImage);
         container.appendChild(closeBtn);
         container.appendChild(info);
@@ -283,6 +385,17 @@ export class ImageGallery {
             loading.style.display = 'none';
             fullImage.style.opacity = '1';
         };
+        
+        // 初始化导航按钮状态
+        updateNavButtons();
+        
+        // 清理事件监听器
+        overlay.addEventListener('remove', () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            container.removeEventListener('touchstart', handleTouchStart);
+            container.removeEventListener('touchmove', handleTouchMove);
+            container.removeEventListener('touchend', handleTouchEnd);
+        });
     }
 
     handleScroll() {

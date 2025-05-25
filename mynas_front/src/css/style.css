@@ -1083,4 +1083,55 @@ input:valid {
 
 .image-action-item.add-to-album:hover {
     background-color: #e3f2fd;
+}
+
+/* 导航按钮样式 */
+.nav-button {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 16px 12px;
+    line-height: 1;
+    opacity: 0.8;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+}
+
+.nav-button:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.8);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.prev-button {
+    left: 20px;
+}
+
+.next-button {
+    right: 20px;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .nav-button {
+        padding: 12px 8px;
+        font-size: 20px;
+    }
+    
+    .prev-button {
+        left: 10px;
+    }
+    
+    .next-button {
+        right: 10px;
+    }
 } 
