@@ -114,7 +114,6 @@ export class ImageGallery {
                     // 获取相册列表
                     const response = await fetchWithAuth('/albums');
                     if (!response.success) {
-                        alert('获取相册列表失败');
                         return;
                     }
 
@@ -158,14 +157,10 @@ export class ImageGallery {
                             });
 
                             if (addResponse.success) {
-                                alert('已添加到相册');
                                 document.body.removeChild(dialog);
-                            } else {
-                                alert('添加到相册失败');
                             }
                         } catch (error) {
                             console.error('添加到相册失败:', error);
-                            alert('添加到相册失败');
                         }
                     });
 
@@ -185,7 +180,6 @@ export class ImageGallery {
                     document.body.appendChild(dialog);
                 } catch (error) {
                     console.error('获取相册列表失败:', error);
-                    alert('获取相册列表失败');
                 }
                 actionsMenu.classList.remove('show');
             });

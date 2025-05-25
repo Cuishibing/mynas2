@@ -585,7 +585,7 @@ app.post('/api/albums/:name/images', authenticateToken, (req, res) => {
 });
 
 // 从相册中移除图片
-app.delete('/api/albums/:name/images', authenticateToken, (req, res) => {
+app.post('/api/albums/:name/images/remove', authenticateToken, (req, res) => {
     try {
         const { name } = req.params;
         const { imagePath } = req.body;
