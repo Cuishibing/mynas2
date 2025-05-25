@@ -71,42 +71,75 @@ export class ImageGallery {
                 }
             };
 
-            // 创建删除按钮
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'image-delete-btn';
-            deleteBtn.innerHTML = '删除';
-            deleteBtn.addEventListener('click', async (e) => {
-                e.stopPropagation(); // 阻止事件冒泡，避免触发图片预览
-                if (confirm('确定要删除这张图片吗？')) {
-                    try {
-                        const response = await fetchWithAuth('/images/delete', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                filename: image.name
-                            })
-                        });
-                        
-                        if (response.success) {
-                            // 从DOM中移除图片元素
-                            div.remove();
-                            // 从图片数组中移除
-                            this.images = this.images.filter(img => img.name !== image.name);
-                            this.total--;
-                        } else {
-                            alert('删除失败');
-                        }
-                    } catch (error) {
-                        console.error('删除图片失败:', error);
+            // 创建更多操作按钮
+            const actionsBtn = document.createElement('button');
+            actionsBtn.className = 'image-actions-btn';
+            actionsBtn.innerHTML = '⋮';
+            
+            // 创建操作菜单
+            const actionsMenu = document.createElement('div');
+            actionsMenu.className = 'image-actions-menu';
+            
+            // 删除选项
+            const deleteItem = document.createElement('div');
+            deleteItem.className = 'image-action-item delete';
+            deleteItem.innerHTML = `
+                <span class="icon">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </span>
+                <span>删除</span>
+            `;
+            deleteItem.addEventListener('click', async (e) => {
+                e.stopPropagation(); // 阻止事件冒泡
+                try {
+                    const response = await fetchWithAuth('/images/delete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            filename: image.name
+                        })
+                    });
+                    
+                    if (response.success) {
+                        div.remove();
+                        this.images = this.images.filter(img => img.name !== image.name);
+                        this.total--;
+                    } else {
                         alert('删除失败');
                     }
+                } catch (error) {
+                    console.error('删除图片失败:', error);
+                    alert('删除失败');
+                }
+                actionsMenu.classList.remove('show');
+            });
+
+            // 组装菜单
+            actionsMenu.appendChild(deleteItem);
+            
+            // 点击更多按钮显示/隐藏菜单
+            actionsBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // 阻止事件冒泡
+                actionsMenu.classList.toggle('show');
+            });
+            
+            // 点击其他地方关闭菜单
+            document.addEventListener('click', (e) => {
+                if (!actionsMenu.contains(e.target) && e.target !== actionsBtn) {
+                    actionsMenu.classList.remove('show');
                 }
             });
 
             div.appendChild(img);
-            div.appendChild(deleteBtn);
+            div.appendChild(actionsBtn);
+            div.appendChild(actionsMenu);
 
             // 添加点击事件（预览图片）
             div.addEventListener('click', () => this.showFullImage(image));
