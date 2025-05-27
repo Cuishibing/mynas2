@@ -229,7 +229,35 @@ app.get('/api/images', authenticateToken, (req, res) => {
     const end = start + pageSize;
 
     const allFiles = fs.readdirSync(userUploadDir)
-        .filter(file => /\.(jpg|jpeg|png|gif)$/i.test(file) && !file.includes('thumbnails'));
+        .filter(file => /\.(jpg|jpeg|png|gif)$/i.test(file) && !file.includes('thumbnails'))
+        .map(file => {
+            const filePath = path.join(userUploadDir, file);
+            const stats = fs.statSync(filePath);
+            // 检查 birthtime 是否存在且有效
+            const birthtime = stats.birthtime && stats.birthtime.getTime() > 0 ? stats.birthtime : null;
+            return {
+                name: file,
+                birthtime: birthtime,
+                ctime: stats.ctime
+            };
+        })
+        .sort((a, b) => {
+            // 如果两个文件都有有效的 birthtime，使用 birthtime 比较
+            if (a.birthtime && b.birthtime) {
+                return b.birthtime - a.birthtime;
+            }
+            // 如果只有 a 有有效的 birthtime，a 排在前面
+            if (a.birthtime) {
+                return -1;
+            }
+            // 如果只有 b 有有效的 birthtime，b 排在前面
+            if (b.birthtime) {
+                return 1;
+            }
+            // 如果都没有有效的 birthtime，使用 ctime 比较
+            return b.ctime - a.ctime;
+        })
+        .map(file => file.name);
 
     const total = allFiles.length;
     const files = allFiles.slice(start, end).map(file => {
