@@ -95,6 +95,35 @@ export class ImageGallery {
                 <span>删除</span>
             `;
 
+            // 添加删除事件处理
+            deleteItem.addEventListener('click', async (e) => {
+                e.stopPropagation(); // 阻止事件冒泡
+                if (confirm('确定要删除这张图片吗？')) {
+                    try {
+                        const response = await fetchWithAuth('/images/delete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                filename: image.name
+                            })
+                        });
+
+                        if (response.success) {
+                            // 从DOM中移除图片元素
+                            div.remove();
+                            // 从图片数组中移除
+                            this.images = this.images.filter(img => img.name !== image.name);
+                            this.total--;
+                        }
+                    } catch (error) {
+                        console.error('删除图片失败:', error);
+                    }
+                }
+                actionsMenu.classList.remove('show');
+            });
+
             // 添加到相册选项
             const addToAlbumItem = document.createElement('div');
             addToAlbumItem.className = 'image-action-item add-to-album';
