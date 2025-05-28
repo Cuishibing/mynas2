@@ -186,6 +186,30 @@ app.post('/api/images/delete', authenticateToken, (req, res) => {
         if (fs.existsSync(thumbnailPath)) {
             fs.unlinkSync(thumbnailPath);
         }
+
+        // 从所有相册中删除该图片
+        const userDir = path.join(dataDir, req.user.username);
+        if (fs.existsSync(userDir)) {
+            const files = fs.readdirSync(userDir);
+            const albumFiles = files.filter(file => file.startsWith('xiangce_'));
+            
+            albumFiles.forEach(albumFile => {
+                const albumPath = path.join(userDir, albumFile);
+                try {
+                    const content = fs.readFileSync(albumPath, 'utf8');
+                    const images = JSON.parse(content);
+                    // 过滤掉要删除的图片
+                    const newImages = images.filter(path => !path.includes(decodedFilename));
+                    // 如果相册内容有变化，则更新相册文件
+                    if (newImages.length !== images.length) {
+                        fs.writeFileSync(albumPath, JSON.stringify(newImages));
+                        console.log(`从相册 ${albumFile} 中删除图片 ${decodedFilename}`);
+                    }
+                } catch (error) {
+                    console.error(`处理相册 ${albumFile} 时出错:`, error);
+                }
+            });
+        }
         
         console.log('图片删除成功:', decodedFilename);
         res.json({ success: true });

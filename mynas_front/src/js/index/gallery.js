@@ -32,9 +32,63 @@ export class ImageGallery {
             <div class="selection-info">已选择 <span class="selection-count">0</span> 张图片</div>
             <div class="selection-actions">
                 <button class="selection-btn cancel">取消</button>
-                <button class="selection-btn add-to-album">添加到相册</button>
+                <div class="selection-menu">
+                    <button class="selection-btn menu-trigger">操作</button>
+                    <div class="selection-menu-items">
+                        <button class="selection-menu-item delete">删除</button>
+                        <button class="selection-menu-item add-to-album">添加到相册</button>
+                    </div>
+                </div>
             </div>
         `;
+
+        // 添加菜单触发按钮事件
+        const menuTrigger = this.selectionBar.querySelector('.menu-trigger');
+        const menuItems = this.selectionBar.querySelector('.selection-menu-items');
+        
+        menuTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            menuItems.classList.toggle('show');
+        });
+
+        // 点击其他地方关闭菜单
+        document.addEventListener('click', () => {
+            menuItems.classList.remove('show');
+        });
+
+        // 添加删除按钮事件
+        this.selectionBar.querySelector('.delete').addEventListener('click', async () => {
+            if (confirm('确定要删除选中的图片吗？')) {
+                const promises = Array.from(this.selectedImages).map(imagePath => 
+                    fetchWithAuth('/images/delete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            filename: imagePath.split('/').pop()
+                        })
+                    }).catch(error => {
+                        console.error('删除图片失败:', error);
+                    })
+                );
+
+                await Promise.all(promises);
+                
+                // 从UI中移除已删除的图片
+                Array.from(this.selectedImages).forEach(imagePath => {
+                    const imageItem = this.container.querySelector(`img[data-path="${imagePath}"]`)?.parentElement;
+                    if (imageItem) {
+                        imageItem.remove();
+                    }
+                    // 从图片数组中移除
+                    this.images = this.images.filter(img => img.path !== imagePath);
+                    this.total--;
+                });
+
+                this.exitSelectionMode();
+            }
+        });
 
         // 添加取消按钮事件
         this.selectionBar.querySelector('.cancel').addEventListener('click', () => {
@@ -74,24 +128,21 @@ export class ImageGallery {
                     if (!albumItem) return;
 
                     const albumName = albumItem.dataset.name;
-                    try {
-                        // 批量添加图片到相册
-                        const promises = Array.from(this.selectedImages).map(imagePath => 
-                            fetchWithAuth(`/albums/${encodeURIComponent(albumName)}/images`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({ imagePath })
-                            })
-                        );
+                    const promises = Array.from(this.selectedImages).map(imagePath => 
+                        fetchWithAuth(`/albums/${encodeURIComponent(albumName)}/images`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ imagePath })
+                        }).catch(error => {
+                            console.error('添加图片到相册失败:', error);
+                        })
+                    );
 
-                        await Promise.all(promises);
-                        document.body.removeChild(dialog);
-                        this.exitSelectionMode();
-                    } catch (error) {
-                        console.error('添加到相册失败:', error);
-                    }
+                    await Promise.all(promises);
+                    document.body.removeChild(dialog);
+                    this.exitSelectionMode();
                 });
 
                 dialog.querySelector('.cancel').addEventListener('click', () => {

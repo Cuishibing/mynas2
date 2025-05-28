@@ -1226,20 +1226,66 @@ input:valid {
     background-color: #e0e0e0;
 }
 
-.selection-btn.add-to-album {
+.selection-btn.menu-trigger {
     background-color: #2196f3;
     color: white;
 }
 
-.selection-btn.add-to-album:hover {
+.selection-btn.menu-trigger:hover {
     background-color: #1976d2;
 }
 
-/* 图片操作菜单样式补充 */
-.image-action-item.select {
-    color: #4caf50;
+/* 下拉菜单样式 */
+.selection-menu {
+    position: relative;
 }
 
-.image-action-item.select:hover {
-    background-color: #e8f5e9;
+.selection-menu-items {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 4px 0;
+    min-width: 120px;
+    display: none;
+    z-index: 1001;
+}
+
+.selection-menu-items.show {
+    display: block;
+}
+
+.selection-menu-item {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    text-align: left;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.selection-menu-item:hover {
+    background-color: #f5f5f5;
+}
+
+.selection-menu-item.delete {
+    color: #f44336;
+}
+
+.selection-menu-item.delete:hover {
+    background-color: #ffebee;
+}
+
+.selection-menu-item.add-to-album {
+    color: #2196f3;
+}
+
+.selection-menu-item.add-to-album:hover {
+    background-color: #e3f2fd;
 } 
