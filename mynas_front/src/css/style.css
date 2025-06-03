@@ -1288,4 +1288,264 @@ input:valid {
 
 .selection-menu-item.add-to-album:hover {
     background-color: #e3f2fd;
+}
+
+/* iOS风格开关样式 */
+.ios-switch {
+    position: relative;
+    display: inline-block;
+    width: 51px;
+    height: 31px;
+}
+
+.ios-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.ios-switch .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #e9e9eb;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.ios-switch .slider:before {
+    position: absolute;
+    content: "";
+    height: 27px;
+    width: 27px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ios-switch input:checked + .slider {
+    background-color: #34c759;
+}
+
+.ios-switch input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+.ios-switch input:disabled + .slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 设置项样式 */
+.setting-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: #fff;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.setting-label {
+    flex: 1;
+    font-size: 16px;
+    color: #000;
+}
+
+.setting-description {
+    padding: 8px 16px;
+    font-size: 14px;
+    color: #8e8e93;
+    background: #f2f2f7;
+}
+
+/* 下载对话框样式 */
+.download-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.download-dialog-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 400px;
+}
+
+.download-dialog h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+}
+
+.download-dialog p {
+    margin: 0 0 20px 0;
+    color: #666;
+}
+
+.download-dialog .dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.download-dialog .button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.download-dialog .download-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.download-dialog .download-btn:hover {
+    background-color: #45a049;
+}
+
+.download-dialog .cancel-btn {
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.download-dialog .cancel-btn:hover {
+    background-color: #e0e0e0;
+}
+
+/* 下载链接样式 */
+.download-link {
+    margin: 15px 0;
+    display: flex;
+    gap: 10px;
+}
+
+.link-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #666;
+    background-color: #f5f5f5;
+    cursor: text;
+    user-select: all;
+}
+
+.copy-btn {
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+}
+
+.copy-btn:hover {
+    background-color: #1976d2;
+}
+
+.copy-btn:active {
+    background-color: #1565c0;
+}
+
+.album-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.album-actions {
+    position: relative;
+    margin-left: 12px;
+}
+
+.album-action-btn {
+    background: none;
+    border: none;
+    color: #666;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.album-action-btn:hover {
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.album-action-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 8px 0;
+    min-width: 120px;
+    z-index: 1000;
+    display: none;
+}
+
+.album-action-menu.show {
+    display: block;
+}
+
+.album-action-item {
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #333;
+    text-decoration: none;
+    transition: background-color 0.2s;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.album-action-item:hover {
+    background-color: #f5f5f5;
+}
+
+.album-action-item .icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.album-action-item.compress {
+    color: #2196f3;
+}
+
+.album-action-item.compress:hover {
+    background-color: #e3f2fd;
 } 

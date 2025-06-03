@@ -37,6 +37,7 @@ export class ImageGallery {
                     <div class="selection-menu-items">
                         <button class="selection-menu-item delete">删除</button>
                         <button class="selection-menu-item add-to-album">添加到相册</button>
+                        <button class="selection-menu-item compress">压缩下载</button>
                     </div>
                 </div>
             </div>
@@ -158,6 +159,110 @@ export class ImageGallery {
                 document.body.appendChild(dialog);
             } catch (error) {
                 console.error('获取相册列表失败:', error);
+            }
+        });
+
+        // 添加压缩下载按钮事件
+        this.selectionBar.querySelector('.compress').addEventListener('click', async () => {
+            try {
+                const filenames = Array.from(this.selectedImages).map(path => path.split('/').pop());
+                const response = await fetchWithAuth('/images/compress', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ filenames })
+                });
+
+                if (response.success) {
+                    // 创建下载对话框
+                    const dialog = document.createElement('div');
+                    dialog.className = 'download-dialog';
+                    dialog.innerHTML = `
+                        <div class="download-dialog-content">
+                            <h3>下载文件</h3>
+                            <p>文件正在压缩中，您可以复制下载链接稍后下载</p>
+                            <div class="download-link">
+                                <input type="text" class="link-input" readonly value="${this.apiBaseUrl}/download${response.downloadUrl}">
+                                <button class="button copy-btn">复制链接</button>
+                            </div>
+                            <div class="dialog-buttons">
+                                <button class="button download-btn">立即下载</button>
+                                <button class="button cancel-btn">取消</button>
+                            </div>
+                        </div>
+                    `;
+
+                    // 添加复制链接功能
+                    const linkInput = dialog.querySelector('.link-input');
+                    const copyBtn = dialog.querySelector('.copy-btn');
+                    const downloadBtn = dialog.querySelector('.download-btn');
+                    
+                    copyBtn.addEventListener('click', () => {
+                        linkInput.select();
+                        document.execCommand('copy');
+                        copyBtn.textContent = '已复制';
+                        setTimeout(() => {
+                            copyBtn.textContent = '复制链接';
+                        }, 2000);
+                    });
+
+                    // 修改下载按钮事件
+                    downloadBtn.addEventListener('click', async () => {
+                        try {
+                            downloadBtn.disabled = true;
+                            downloadBtn.textContent = '检查中...';
+                            
+                            const response = await fetch(`${this.apiBaseUrl}/download${response.downloadUrl}`);
+                            
+                            if (response.status === 409) {
+                                // 文件正在压缩中
+                                const data = await response.json();
+                                downloadBtn.textContent = '正在压缩...';
+                                // 5秒后重试
+                                setTimeout(() => {
+                                    downloadBtn.textContent = '立即下载';
+                                    downloadBtn.disabled = false;
+                                }, 5000);
+                            } else if (response.ok) {
+                                // 文件已准备好，开始下载
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = ''; // 让浏览器自动处理文件名
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(dialog);
+                            } else {
+                                throw new Error('下载失败');
+                            }
+                        } catch (error) {
+                            console.error('下载失败:', error);
+                            downloadBtn.textContent = '重试下载';
+                            downloadBtn.disabled = false;
+                        }
+                    });
+
+                    // 添加取消按钮事件
+                    dialog.querySelector('.cancel-btn').addEventListener('click', () => {
+                        document.body.removeChild(dialog);
+                    });
+
+                    // 点击对话框外部关闭
+                    dialog.addEventListener('click', (e) => {
+                        if (e.target === dialog) {
+                            document.body.removeChild(dialog);
+                        }
+                    });
+
+                    document.body.appendChild(dialog);
+                }
+            } catch (error) {
+                console.error('压缩图片失败:', error);
+                alert('压缩图片失败，请重试');
             }
         });
 

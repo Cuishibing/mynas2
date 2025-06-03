@@ -6,6 +6,7 @@ const path = require('path');
 const sharp = require('sharp');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const archiver = require('archiver');
 const { IMAGE_EXTENSION_REGEX, THUMBNAIL_CONFIG } = require('./config');
 
 const app = express();
@@ -670,6 +671,143 @@ app.post('/api/albums/:name/images/remove', authenticateToken, (req, res) => {
             success: false,
             message: '从相册中移除图片失败'
         });
+    }
+});
+
+// 压缩图片接口
+app.post('/api/images/compress', authenticateToken, async (req, res) => {
+    try {
+        const { filenames } = req.body;
+        if (!filenames || !Array.isArray(filenames) || filenames.length === 0) {
+            return res.status(400).json({ error: '请选择要压缩的图片' });
+        }
+
+        // 创建临时目录用于存放压缩文件
+        const tempDir = path.join(__dirname, 'temp');
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+        }
+
+        // 生成唯一的压缩文件名
+        const timestamp = new Date().getTime();
+        const zipFilename = `images_${timestamp}.zip`;
+        const zipPath = path.join(tempDir, zipFilename);
+
+        // 创建一个标记文件来表示压缩正在进行
+        const statusFile = `${zipPath}.status`;
+        fs.writeFileSync(statusFile, 'compressing');
+
+        // 立即返回下载链接
+        res.json({
+            success: true,
+            downloadUrl: `/${zipFilename}`
+        });
+
+        // 异步进行压缩
+        const output = fs.createWriteStream(zipPath);
+        const archive = archiver('zip', {
+            zlib: { 
+                level: 9,  // 最高压缩级别
+                memLevel: 9,  // 最大内存使用
+                strategy: 3,  // 使用最大压缩策略
+                dictionarySize: 32768  // 使用较大的字典大小
+            },
+            store: false  // 确保所有文件都被压缩，而不是仅存储
+        });
+
+        // 监听压缩完成事件
+        output.on('close', () => {
+            console.log('压缩完成:', zipFilename);
+            // 删除状态文件
+            if (fs.existsSync(statusFile)) {
+                fs.unlinkSync(statusFile);
+            }
+        });
+
+        // 监听错误事件
+        archive.on('error', (err) => {
+            console.error('压缩文件时发生错误:', err);
+            // 如果压缩失败，删除临时文件和状态文件
+            if (fs.existsSync(zipPath)) {
+                fs.unlinkSync(zipPath);
+            }
+            if (fs.existsSync(statusFile)) {
+                fs.unlinkSync(statusFile);
+            }
+        });
+
+        // 将压缩流管道到输出流
+        archive.pipe(output);
+
+        // 添加文件到压缩包
+        for (const filename of filenames) {
+            const filePath = path.join(uploadDir, req.user.username, filename);
+            if (fs.existsSync(filePath)) {
+                archive.file(filePath, { name: filename });
+            }
+        }
+
+        // 完成压缩
+        await archive.finalize();
+    } catch (error) {
+        console.error('压缩图片失败:', error);
+        // 注意：这里不返回错误，因为响应已经发送
+    }
+});
+
+// 下载文件接口
+app.get('/api/download/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(__dirname, 'temp', filename);
+    const statusFile = `${filePath}.status`;
+
+    // 检查文件是否存在
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: '文件不存在' });
+    }
+
+    // 检查是否正在压缩
+    if (fs.existsSync(statusFile)) {
+        return res.status(409).json({ 
+            error: '文件正在压缩中',
+            status: 'compressing'
+        });
+    }
+
+    const stat = fs.statSync(filePath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    if (range) {
+        // 处理断点续传请求
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunksize = (end - start) + 1;
+        const file = fs.createReadStream(filePath, { start, end });
+        const head = {
+            'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+            'Accept-Ranges': 'bytes',
+            'Content-Length': chunksize,
+            'Content-Type': 'application/zip',
+            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Cache-Control': 'public, max-age=31536000'
+        };
+
+        res.writeHead(206, head);
+        file.pipe(res);
+    } else {
+        // 处理普通下载请求
+        const head = {
+            'Content-Length': fileSize,
+            'Content-Type': 'application/zip',
+            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'public, max-age=31536000'
+        };
+
+        res.writeHead(200, head);
+        fs.createReadStream(filePath).pipe(res);
     }
 });
 

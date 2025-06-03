@@ -12,5 +12,16 @@ export const config = {
     // 分页配置
     pagination: {
         defaultPageSize: 20
+    },
+
+    // 相册配置
+    album: {
+        enableTimeline: true, // 是否启用时间轴展示
+        timelineConfig: {
+            showYear: true,    // 显示年份
+            showMonth: true,   // 显示月份
+            showDay: true,     // 显示日期
+            groupBy: 'month'   // 按月份分组
+        }
     }
 }; 
