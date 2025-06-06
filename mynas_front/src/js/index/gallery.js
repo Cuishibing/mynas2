@@ -97,69 +97,8 @@ export class ImageGallery {
         });
 
         // 添加添加到相册按钮事件
-        this.selectionBar.querySelector('.add-to-album').addEventListener('click', async () => {
-            try {
-                const response = await fetchWithAuth('/albums');
-                if (!response.success) {
-                    return;
-                }
-
-                const dialog = document.createElement('div');
-                dialog.className = 'album-dialog';
-                dialog.innerHTML = `
-                    <div class="album-dialog-content">
-                        <h3>选择相册</h3>
-                        <div class="album-list"></div>
-                        <div class="dialog-buttons">
-                            <button class="button cancel">取消</button>
-                        </div>
-                    </div>
-                `;
-
-                const albumList = dialog.querySelector('.album-list');
-                albumList.innerHTML = response.albums.map(album => `
-                    <div class="album-item" data-name="${album.name}">
-                        <span class="album-name">${album.name}</span>
-                        <span class="album-count">${album.count} 张图片</span>
-                    </div>
-                `).join('');
-
-                albumList.addEventListener('click', async (e) => {
-                    const albumItem = e.target.closest('.album-item');
-                    if (!albumItem) return;
-
-                    const albumName = albumItem.dataset.name;
-                    const promises = Array.from(this.selectedImages).map(imagePath => 
-                        fetchWithAuth(`/albums/${encodeURIComponent(albumName)}/images`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ imagePath })
-                        }).catch(error => {
-                            console.error('添加图片到相册失败:', error);
-                        })
-                    );
-
-                    await Promise.all(promises);
-                    document.body.removeChild(dialog);
-                    this.exitSelectionMode();
-                });
-
-                dialog.querySelector('.cancel').addEventListener('click', () => {
-                    document.body.removeChild(dialog);
-                });
-
-                dialog.addEventListener('click', (e) => {
-                    if (e.target === dialog) {
-                        document.body.removeChild(dialog);
-                    }
-                });
-
-                document.body.appendChild(dialog);
-            } catch (error) {
-                console.error('获取相册列表失败:', error);
-            }
+        this.selectionBar.querySelector('.add-to-album').addEventListener('click', () => {
+            this.addToAlbum(Array.from(this.selectedImages));
         });
 
         // 添加压缩下载按钮事件
@@ -453,6 +392,13 @@ export class ImageGallery {
                 <span>添加到相册</span>
             `;
 
+            // 添加点击事件
+            addToAlbumItem.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await this.addToAlbum([image.path]);
+                actionsMenu.classList.remove('show');
+            });
+
             // 组装菜单
             actionsMenu.appendChild(selectItem);
             actionsMenu.appendChild(addToAlbumItem);
@@ -461,7 +407,14 @@ export class ImageGallery {
             // 点击更多按钮显示/隐藏菜单
             actionsBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 actionsMenu.classList.toggle('show');
+            });
+            
+            // 点击菜单项时阻止冒泡
+            actionsMenu.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
             });
             
             // 点击其他地方关闭菜单
@@ -476,7 +429,12 @@ export class ImageGallery {
             div.appendChild(actionsMenu);
 
             // 添加点击事件（预览图片或选择图片）
-            div.addEventListener('click', () => {
+            div.addEventListener('click', (e) => {
+                // 如果点击的是操作按钮或菜单，不触发预览
+                if (e.target.closest('.image-actions-btn') || e.target.closest('.image-actions-menu')) {
+                    return;
+                }
+                
                 if (this.isSelectionMode) {
                     if (this.selectedImages.has(image.path)) {
                         this.selectedImages.delete(image.path);
@@ -741,5 +699,73 @@ export class ImageGallery {
         
         imageItem.appendChild(img);
         this.container.insertBefore(imageItem, this.container.firstChild);
+    }
+
+    async addToAlbum(imagePaths) {
+        try {
+            const response = await fetchWithAuth('/albums');
+            if (!response.success) {
+                return;
+            }
+
+            const dialog = document.createElement('div');
+            dialog.className = 'album-dialog';
+            dialog.innerHTML = `
+                <div class="album-dialog-content">
+                    <h3>选择相册</h3>
+                    <div class="album-list"></div>
+                    <div class="dialog-buttons">
+                        <button class="button cancel">取消</button>
+                    </div>
+                </div>
+            `;
+
+            const albumList = dialog.querySelector('.album-list');
+            albumList.innerHTML = response.albums.map(album => `
+                <div class="album-item" data-name="${album.name}">
+                    <span class="album-name">${album.name}</span>
+                    <span class="album-count">${album.count} 张图片</span>
+                </div>
+            `).join('');
+
+            albumList.addEventListener('click', async (e) => {
+                const albumItem = e.target.closest('.album-item');
+                if (!albumItem) return;
+
+                const albumName = albumItem.dataset.name;
+                const promises = imagePaths.map(imagePath => 
+                    fetchWithAuth(`/albums/${encodeURIComponent(albumName)}/images`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ imagePath })
+                    }).catch(error => {
+                        console.error('添加图片到相册失败:', error);
+                    })
+                );
+
+                await Promise.all(promises);
+                document.body.removeChild(dialog);
+                if (this.isSelectionMode) {
+                    this.exitSelectionMode();
+                }
+            });
+
+            dialog.querySelector('.cancel').addEventListener('click', () => {
+                document.body.removeChild(dialog);
+            });
+
+            dialog.addEventListener('click', (e) => {
+                if (e.target === dialog) {
+                    document.body.removeChild(dialog);
+                }
+            });
+
+            document.body.appendChild(dialog);
+        } catch (error) {
+            console.error('获取相册列表失败:', error);
+            alert('获取相册列表失败');
+        }
     }
 } 
