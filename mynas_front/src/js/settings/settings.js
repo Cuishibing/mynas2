@@ -254,6 +254,13 @@ export class Settings {
             });
 
             if (compressResponse.success) {
+                // 获取当前浏览器地址
+                const currentHost = window.location.host;
+                // 判断apiBaseUrl是否包含IP地址
+                const hasIpAddress = /^(https?:\/\/)?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?)/.test(config.apiBaseUrl);
+                // 根据情况选择使用哪个地址
+                const downloadBaseUrl = hasIpAddress ? config.apiBaseUrl : `http://${currentHost}${config.apiBaseUrl}`;
+
                 // 创建下载对话框
                 const dialog = document.createElement('div');
                 dialog.className = 'download-dialog';
@@ -262,7 +269,7 @@ export class Settings {
                         <h3>下载文件</h3>
                         <p>文件正在压缩中，您可以复制下载链接稍后下载</p>
                         <div class="download-link">
-                            <input type="text" class="link-input" readonly value="${config.apiBaseUrl}/download${compressResponse.downloadUrl}">
+                            <input type="text" class="link-input" readonly value="${downloadBaseUrl}/download${compressResponse.downloadUrl}">
                             <button class="button copy-btn">复制链接</button>
                         </div>
                         <div class="dialog-buttons">
@@ -292,7 +299,7 @@ export class Settings {
                         downloadBtn.disabled = true;
                         downloadBtn.textContent = '检查中...';
                         
-                        const response = await fetch(`${config.apiBaseUrl}/download${compressResponse.downloadUrl}`);
+                        const response = await fetch(`${downloadBaseUrl}/download${compressResponse.downloadUrl}`);
                         
                         if (response.status === 409) {
                             // 文件正在压缩中

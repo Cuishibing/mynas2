@@ -41,7 +41,7 @@ transfer_files() {
     TEMP_DIR=$(mktemp -d)
     
     # 复制后端文件，排除node_modules
-    rsync -av --exclude 'node_modules' --exclude 'uploads' mynas_service/ $TEMP_DIR/mynas_service/ || error "复制后端文件失败"
+    rsync -av --exclude 'node_modules' --exclude 'uploads' --exclude 'temp' mynas_service/ $TEMP_DIR/mynas_service/ || error "复制后端文件失败"
     
     # 复制前端文件，排除node_modules和dist
     rsync -av --exclude 'node_modules' --exclude 'dist' mynas_front/ $TEMP_DIR/mynas_front/ || error "复制前端文件失败"
