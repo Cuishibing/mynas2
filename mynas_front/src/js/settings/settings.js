@@ -3,18 +3,43 @@ import { fetchWithAuth } from '../utils/api.js';
 
 export class Settings {
     constructor() {
+        // 等待DOM加载完成
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.initialize());
+        } else {
+            this.initialize();
+        }
+    }
+
+    initialize() {
         this.albumList = document.querySelector('.album-list');
         this.albumNameInput = document.getElementById('album-name');
         this.createAlbumBtn = document.getElementById('create-album');
         this.timelineToggle = document.getElementById('timeline-toggle');
+        this.defaultCollapsedToggle = document.getElementById('default-collapsed-toggle');
+        
+        console.log('Settings初始化:', {
+            albumList: !!this.albumList,
+            albumNameInput: !!this.albumNameInput,
+            createAlbumBtn: !!this.createAlbumBtn,
+            timelineToggle: !!this.timelineToggle,
+            defaultCollapsedToggle: !!this.defaultCollapsedToggle
+        });
         
         this.init();
     }
 
     init() {
         this.loadAlbums();
-        this.createAlbumBtn.addEventListener('click', () => this.createAlbum());
-        this.initTimelineSetting();
+        if (this.createAlbumBtn) {
+            this.createAlbumBtn.addEventListener('click', () => this.createAlbum());
+        }
+        if (this.timelineToggle) {
+            this.initTimelineSetting();
+        }
+        if (this.defaultCollapsedToggle) {
+            this.initDefaultCollapsedSetting();
+        }
     }
 
     initTimelineSetting() {
@@ -36,6 +61,50 @@ export class Settings {
                 detail: { enabled }
             }));
         });
+    }
+
+    initDefaultCollapsedSetting() {
+        if (!this.defaultCollapsedToggle) {
+            console.error('找不到日期组收拢开关元素：default-collapsed-toggle');
+            return;
+        }
+        
+        // 从本地存储加载设置
+        const settings = this.loadImageGallerySettings();
+        const defaultCollapsed = settings.defaultCollapsed || false;
+        this.defaultCollapsedToggle.checked = defaultCollapsed;
+
+        // 监听设置变化
+        this.defaultCollapsedToggle.addEventListener('change', (e) => {
+            const collapsed = e.target.checked;
+            this.saveImageGallerySettings({ defaultCollapsed: collapsed });
+            // 通知图片列表页面更新设置
+            window.dispatchEvent(new CustomEvent('defaultCollapsedSettingChanged', {
+                detail: { defaultCollapsed: collapsed }
+            }));
+        });
+        
+        console.log('日期组收拢设置已初始化，当前状态:', defaultCollapsed);
+    }
+
+    loadImageGallerySettings() {
+        try {
+            const settings = localStorage.getItem('imageGallerySettings');
+            return settings ? JSON.parse(settings) : {};
+        } catch (error) {
+            console.error('读取图片列表设置失败:', error);
+            return {};
+        }
+    }
+
+    saveImageGallerySettings(settings) {
+        try {
+            const currentSettings = this.loadImageGallerySettings();
+            const newSettings = { ...currentSettings, ...settings };
+            localStorage.setItem('imageGallerySettings', JSON.stringify(newSettings));
+        } catch (error) {
+            console.error('保存图片列表设置失败:', error);
+        }
     }
 
     async loadAlbums() {

@@ -4,24 +4,64 @@ import { fetchWithAuth } from '../utils/api.js';
 export class ImageGallery {
     constructor() {
         this.apiBaseUrl = config.apiBaseUrl;
-        this.images = [];
+        this.images = []; // 扁平化的图片列表，用于查找等操作
+        this.groups = []; // 按日期分组的图片列表
         this.container = document.getElementById('image-grid');
         this.page = 1;
-        this.pageSize = 20;
+        this.pageSize = 3; // 每次加载3个日期组（3天）
         this.total = 0;
+        this.totalGroups = 0;
         this.hasMore = true;
         this.isLoading = false;
         this.selectedImages = new Set(); // 存储选中的图片
         this.isSelectionMode = false; // 是否处于选择模式
+        this.defaultCollapsed = false; // 日期组默认是否收拢
         this.init();
     }
 
     init() {
+        // 从localStorage读取设置
+        const settings = this.loadSettings();
+        this.defaultCollapsed = settings.defaultCollapsed || false;
+        
+        // 监听设置变化事件（从设置页面触发）
+        window.addEventListener('defaultCollapsedSettingChanged', (e) => {
+            this.defaultCollapsed = e.detail.defaultCollapsed;
+            // 如果页面已加载，重新渲染以应用新设置
+            if (this.groups.length > 0) {
+                this.page = 1;
+                this.groups = [];
+                this.hasMore = true;
+                this.loadImages();
+            }
+        });
+        
         this.loadImages();
         // 添加滚动监听
         window.addEventListener('scroll', this.handleScroll.bind(this));
         // 创建操作栏
         this.createSelectionBar();
+    }
+    
+    loadSettings() {
+        try {
+            const settings = localStorage.getItem('imageGallerySettings');
+            return settings ? JSON.parse(settings) : {};
+        } catch (error) {
+            console.error('读取设置失败:', error);
+            return {};
+        }
+    }
+    
+    saveSettings(settings) {
+        try {
+            const currentSettings = this.loadSettings();
+            const newSettings = { ...currentSettings, ...settings };
+            localStorage.setItem('imageGallerySettings', JSON.stringify(newSettings));
+            this.defaultCollapsed = newSettings.defaultCollapsed || false;
+        } catch (error) {
+            console.error('保存设置失败:', error);
+        }
     }
 
     createSelectionBar() {
@@ -251,15 +291,54 @@ export class ImageGallery {
         this.isLoading = true;
         try {
             const data = await this.fetchImages();
-            this.images = [...this.images, ...data.images];
-            this.total = data.total;
-            this.hasMore = data.hasMore;
-            this.page = data.page;
-            this.displayImages(data.images);
+            const newGroups = data.groups || [];
+            
+            // 追加新的日期组到现有列表
+            this.groups = [...this.groups, ...newGroups];
+            
+            // 只在第一页时更新总数（后端只在第一页返回总数）
+            if (this.page === 1) {
+                this.total = data.total || 0;
+                this.totalGroups = data.totalGroups || 0;
+            } else {
+                // 后续页面只更新hasMore和page，总数保持不变
+                this.totalGroups = data.totalGroups || this.totalGroups;
+            }
+            
+            this.hasMore = data.hasMore || false;
+            this.page = data.page || this.page;
+            
+            // 扁平化图片列表，用于查找等操作
+            this.images = [];
+            this.groups.forEach(group => {
+                this.images = [...this.images, ...group.images];
+            });
+            
+            this.displayGroups(newGroups);
+            
+            // 图片加载完成后，检查是否需要继续加载
+            // 如果页面高度不足（因为折叠导致），自动加载更多
+            setTimeout(() => {
+                this.checkAndLoadMore();
+            }, 100);
         } catch (error) {
             console.error('加载图片失败:', error);
         } finally {
             this.isLoading = false;
+        }
+    }
+    
+    checkAndLoadMore() {
+        if (this.isLoading || !this.hasMore) return;
+        
+        const scrollHeight = document.documentElement.scrollHeight;
+        const clientHeight = document.documentElement.clientHeight;
+        
+        // 如果页面没有滚动条（高度不足），但还有更多数据，自动加载
+        if (scrollHeight <= clientHeight && this.hasMore) {
+            console.log('页面高度不足，自动加载更多日期组');
+            this.page++;
+            this.loadImages();
         }
     }
 
@@ -272,183 +351,241 @@ export class ImageGallery {
         }
     }
 
-    displayImages(newImages) {
-        newImages.forEach(image => {
-            const div = document.createElement('div');
-            div.className = 'image-item';
+    displayGroups(newGroups) {
+        // 追加新的日期组（如果是首次加载则清空容器）
+        if (this.page === 1) {
+            this.container.innerHTML = '';
+        }
+        
+        // 按日期组显示
+        newGroups.forEach(group => {
+            // 创建日期组容器
+            const groupContainer = document.createElement('div');
+            groupContainer.className = 'date-group';
+            groupContainer.dataset.date = group.date;
             
-            const img = document.createElement('img');
-            img.src = `${this.apiBaseUrl}${image.thumbnail}`;
-            img.alt = image.name;
-            img.loading = 'lazy';
-            img.dataset.path = image.path; // 存储图片路径
-            
-            let retryCount = 0;
-            const maxRetries = 3;
-            
-            img.onerror = () => {
-                if (retryCount < maxRetries) {
-                    retryCount++;
-                    console.log(`重试加载图片 ${image.name}，第 ${retryCount} 次尝试`);
-                    img.src = `${this.apiBaseUrl}${image.thumbnail}`;
-                } else {
-                    console.error(`图片 ${image.name} 加载失败`);
-                }
-            };
-
-            // 创建更多操作按钮
-            const actionsBtn = document.createElement('button');
-            actionsBtn.className = 'image-actions-btn';
-            actionsBtn.innerHTML = '⋮';
-            
-            // 创建操作菜单
-            const actionsMenu = document.createElement('div');
-            actionsMenu.className = 'image-actions-menu';
-            
-            // 选择选项
-            const selectItem = document.createElement('div');
-            selectItem.className = 'image-action-item select';
-            selectItem.innerHTML = `
-                <span class="icon">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
-                </span>
-                <span>选择</span>
+            // 创建日期标题（可点击折叠/展开）
+            const dateHeader = document.createElement('div');
+            dateHeader.className = 'date-header';
+            dateHeader.innerHTML = `
+                <div class="date-header-left">
+                    <button class="date-toggle-btn" aria-label="折叠/展开">
+                        <svg class="date-toggle-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                    <span class="date-label">${group.dateDisplay}</span>
+                </div>
+                <span class="date-count">${group.count} 张</span>
             `;
-
-            selectItem.addEventListener('click', (e) => {
+            
+            // 创建该日期的图片网格
+            const imagesGrid = document.createElement('div');
+            imagesGrid.className = 'images-grid';
+            
+            // 显示该日期的所有图片
+            group.images.forEach(image => {
+                const imageItem = this.createImageItem(image);
+                imagesGrid.appendChild(imageItem);
+            });
+            
+            // 根据设置决定是否默认收拢
+            const isCollapsed = this.defaultCollapsed;
+            if (isCollapsed) {
+                groupContainer.classList.add('collapsed');
+                imagesGrid.style.display = 'none';
+            }
+            
+            // 点击日期标题切换折叠/展开
+            const toggleBtn = dateHeader.querySelector('.date-toggle-btn');
+            toggleBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (!this.isSelectionMode) {
-                    this.enterSelectionMode(image.path);
+                const wasCollapsed = groupContainer.classList.contains('collapsed');
+                if (wasCollapsed) {
+                    groupContainer.classList.remove('collapsed');
+                    imagesGrid.style.display = 'grid';
                 } else {
-                    if (this.selectedImages.has(image.path)) {
-                        this.selectedImages.delete(image.path);
-                    } else {
-                        this.selectedImages.add(image.path);
-                    }
-                    this.updateSelectionUI();
-                }
-                actionsMenu.classList.remove('show');
-            });
-
-            // 删除选项
-            const deleteItem = document.createElement('div');
-            deleteItem.className = 'image-action-item delete';
-            deleteItem.innerHTML = `
-                <span class="icon">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 6h18"></path>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                    </svg>
-                </span>
-                <span>删除</span>
-            `;
-
-            // 添加删除事件处理
-            deleteItem.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                if (confirm('确定要删除这张图片吗？')) {
-                    try {
-                        const response = await fetchWithAuth('/images/delete', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                filename: image.name
-                            })
-                        });
-
-                        if (response.success) {
-                            div.remove();
-                            this.images = this.images.filter(img => img.name !== image.name);
-                            this.total--;
-                            if (this.selectedImages.has(image.path)) {
-                                this.selectedImages.delete(image.path);
-                                this.updateSelectionUI();
-                            }
-                        }
-                    } catch (error) {
-                        console.error('删除图片失败:', error);
-                    }
-                }
-                actionsMenu.classList.remove('show');
-            });
-
-            // 添加到相册选项
-            const addToAlbumItem = document.createElement('div');
-            addToAlbumItem.className = 'image-action-item add-to-album';
-            addToAlbumItem.innerHTML = `
-                <span class="icon">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                    </svg>
-                </span>
-                <span>添加到相册</span>
-            `;
-
-            // 添加点击事件
-            addToAlbumItem.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                await this.addToAlbum([image.path]);
-                actionsMenu.classList.remove('show');
-            });
-
-            // 组装菜单
-            actionsMenu.appendChild(selectItem);
-            actionsMenu.appendChild(addToAlbumItem);
-            actionsMenu.appendChild(deleteItem);
-            
-            // 点击更多按钮显示/隐藏菜单
-            actionsBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                actionsMenu.classList.toggle('show');
-            });
-            
-            // 点击菜单项时阻止冒泡
-            actionsMenu.addEventListener('click', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-            });
-            
-            // 点击其他地方关闭菜单
-            document.addEventListener('click', (e) => {
-                if (!actionsMenu.contains(e.target) && e.target !== actionsBtn) {
-                    actionsMenu.classList.remove('show');
-                }
-            });
-
-            div.appendChild(img);
-            div.appendChild(actionsBtn);
-            div.appendChild(actionsMenu);
-
-            // 添加点击事件（预览图片或选择图片）
-            div.addEventListener('click', (e) => {
-                // 如果点击的是操作按钮或菜单，不触发预览
-                if (e.target.closest('.image-actions-btn') || e.target.closest('.image-actions-menu')) {
-                    return;
-                }
-                
-                if (this.isSelectionMode) {
-                    if (this.selectedImages.has(image.path)) {
-                        this.selectedImages.delete(image.path);
-                    } else {
-                        this.selectedImages.add(image.path);
-                    }
-                    this.updateSelectionUI();
-                } else {
-                    this.showFullImage(image);
+                    groupContainer.classList.add('collapsed');
+                    imagesGrid.style.display = 'none';
                 }
             });
             
-            this.container.appendChild(div);
+            groupContainer.appendChild(dateHeader);
+            groupContainer.appendChild(imagesGrid);
+            this.container.appendChild(groupContainer);
         });
+    }
+    
+    createImageItem(image) {
+        const div = document.createElement('div');
+        div.className = 'image-item';
+        
+        const img = document.createElement('img');
+        img.src = `${this.apiBaseUrl}${image.thumbnail}`;
+        img.alt = image.filename;
+        img.loading = 'lazy';
+        img.dataset.path = image.path; // 存储图片路径
+        
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        img.onerror = () => {
+            if (retryCount < maxRetries) {
+                retryCount++;
+                console.log(`重试加载图片 ${image.filename}，第 ${retryCount} 次尝试`);
+                img.src = `${this.apiBaseUrl}${image.thumbnail}`;
+            } else {
+                console.error(`图片 ${image.filename} 加载失败`);
+            }
+        };
+
+        // 创建更多操作按钮
+        const actionsBtn = document.createElement('button');
+        actionsBtn.className = 'image-actions-btn';
+        actionsBtn.innerHTML = '⋮';
+        
+        // 创建操作菜单
+        const actionsMenu = document.createElement('div');
+        actionsMenu.className = 'image-actions-menu';
+        
+        // 选择选项
+        const selectItem = document.createElement('div');
+        selectItem.className = 'image-action-item select';
+        selectItem.innerHTML = `
+            <span class="icon">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </span>
+            <span>选择</span>
+        `;
+
+        selectItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!this.isSelectionMode) {
+                this.enterSelectionMode(image.path);
+            } else {
+                if (this.selectedImages.has(image.path)) {
+                    this.selectedImages.delete(image.path);
+                } else {
+                    this.selectedImages.add(image.path);
+                }
+                this.updateSelectionUI();
+            }
+            actionsMenu.classList.remove('show');
+        });
+
+        // 删除选项
+        const deleteItem = document.createElement('div');
+        deleteItem.className = 'image-action-item delete';
+        deleteItem.innerHTML = `
+            <span class="icon">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+            </span>
+            <span>删除</span>
+        `;
+
+        // 添加删除事件处理
+        deleteItem.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (confirm('确定要删除这张图片吗？')) {
+                try {
+                    const response = await fetchWithAuth('/images/delete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            filename: image.filename
+                        })
+                    });
+
+                    if (response.success) {
+                        // 重新加载图片列表
+                        this.loadImages();
+                    }
+                } catch (error) {
+                    console.error('删除图片失败:', error);
+                }
+            }
+            actionsMenu.classList.remove('show');
+        });
+
+        // 添加到相册选项
+        const addToAlbumItem = document.createElement('div');
+        addToAlbumItem.className = 'image-action-item add-to-album';
+        addToAlbumItem.innerHTML = `
+            <span class="icon">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+            </span>
+            <span>添加到相册</span>
+        `;
+
+        // 添加点击事件
+        addToAlbumItem.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await this.addToAlbum([image.path]);
+            actionsMenu.classList.remove('show');
+        });
+
+        // 组装菜单
+        actionsMenu.appendChild(selectItem);
+        actionsMenu.appendChild(addToAlbumItem);
+        actionsMenu.appendChild(deleteItem);
+        
+        // 点击更多按钮显示/隐藏菜单
+        actionsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            actionsMenu.classList.toggle('show');
+        });
+        
+        // 点击菜单项时阻止冒泡
+        actionsMenu.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+        
+        // 点击其他地方关闭菜单
+        document.addEventListener('click', (e) => {
+            if (!actionsMenu.contains(e.target) && e.target !== actionsBtn) {
+                actionsMenu.classList.remove('show');
+            }
+        });
+
+        div.appendChild(img);
+        div.appendChild(actionsBtn);
+        div.appendChild(actionsMenu);
+
+        // 添加点击事件（预览图片或选择图片）
+        div.addEventListener('click', (e) => {
+            // 如果点击的是操作按钮或菜单，不触发预览
+            if (e.target.closest('.image-actions-btn') || e.target.closest('.image-actions-menu')) {
+                return;
+            }
+            
+            if (this.isSelectionMode) {
+                if (this.selectedImages.has(image.path)) {
+                    this.selectedImages.delete(image.path);
+                } else {
+                    this.selectedImages.add(image.path);
+                }
+                this.updateSelectionUI();
+            } else {
+                this.showFullImage(image);
+            }
+        });
+        
+        return div;
     }
 
     showFullImage(image) {
@@ -474,7 +611,7 @@ export class ImageGallery {
         // 创建大图
         const fullImage = document.createElement('img');
         fullImage.src = `${this.apiBaseUrl}${image.path}`;
-        fullImage.alt = image.name;
+        fullImage.alt = image.filename;
         fullImage.className = 'full-image';
         
         // 创建关闭按钮
@@ -490,7 +627,7 @@ export class ImageGallery {
         // 创建图片信息
         const info = document.createElement('div');
         info.className = 'image-info';
-        info.textContent = image.name;
+        info.textContent = image.filename;
 
         // 创建左右箭头按钮
         const prevBtn = document.createElement('button');
@@ -535,7 +672,7 @@ export class ImageGallery {
             loading.style.display = 'flex';
             fullImage.style.opacity = '0';
             fullImage.src = `${this.apiBaseUrl}${image.path}`;
-            info.textContent = image.name;
+            info.textContent = image.filename;
         };
         
         // 添加导航按钮事件监听
@@ -633,72 +770,28 @@ export class ImageGallery {
 
     handleScroll() {
         if (this.isLoading || !this.hasMore) return;
-
+        
         const scrollHeight = document.documentElement.scrollHeight;
         const scrollTop = window.scrollY || document.documentElement.scrollTop;
         const clientHeight = document.documentElement.clientHeight;
-
+        
         // 当滚动到距离底部100px时加载更多
-        if (scrollHeight - scrollTop - clientHeight < 100) {
+        const distanceToBottom = scrollHeight - scrollTop - clientHeight;
+        
+        if (distanceToBottom < 100) {
+            // 滚动到底部附近，触发加载
             this.page++;
             this.loadImages();
         }
     }
 
     addImage(imageData) {
-        // 检查图片是否已存在
-        const existingImage = this.images.find(img => img.name === imageData.name);
-        if (existingImage) {
-            return;
-        }
-
-        // 添加到图片数组的开头
-        this.images.unshift(imageData);
-        this.total++;
-
-        // 如果当前显示的图片数量超过pageSize，移除最后一个
-        if (this.images.length > this.pageSize) {
-            this.images = this.images.slice(0, this.pageSize);
-            // 移除最后一个图片元素
-            const lastImage = this.container.lastElementChild;
-            if (lastImage) {
-                this.container.removeChild(lastImage);
-            }
-        }
-
-        // 创建新的图片元素
-        const imageItem = document.createElement('div');
-        imageItem.className = 'image-item';
-        
-        const img = document.createElement('img');
-        img.src = `${this.apiBaseUrl}${imageData.thumbnail}`;
-        img.alt = imageData.name;
-        img.loading = 'lazy';
-        
-        img.onerror = (e) => {
-            console.error('图片加载失败:', imageData.path);
-            let retryCount = 0;
-            const maxRetries = 3;
-            
-            const retryLoad = () => {
-                if (retryCount < maxRetries) {
-                    retryCount++;
-                    console.log(`重试加载图片 (${retryCount}/${maxRetries}):`, imageData.path);
-                    img.src = `${this.apiBaseUrl}${imageData.thumbnail}`;
-                } else {
-                    img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7lm77niYfmnKzmlL7lhoXlrrk8L3RleHQ+PC9zdmc+';
-                    img.alt = '图片加载失败';
-                }
-            };
-            
-            img.onerror = retryLoad;
-        };
-        
-        // 添加点击事件
-        imageItem.addEventListener('click', () => this.showFullImage(imageData));
-        
-        imageItem.appendChild(img);
-        this.container.insertBefore(imageItem, this.container.firstChild);
+        // 上传新图片后，重置分页并重新加载整个列表
+        // 这样可以确保新图片出现在正确的日期组中
+        this.page = 1;
+        this.groups = [];
+        this.hasMore = true;
+        this.loadImages();
     }
 
     async addToAlbum(imagePaths) {

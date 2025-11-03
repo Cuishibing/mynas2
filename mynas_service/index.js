@@ -105,7 +105,209 @@ function ensureDirectoriesExist(username) {
     };
 }
 
-// 生成缩略图
+// ========== 图片索引管理函数 ==========
+
+// 获取日期字符串（YYYY-MM-DD格式）
+function getDateString(date) {
+    return date.toISOString().split('T')[0];
+}
+
+// 获取用户索引目录
+function getImagesIndexDir(username) {
+    return path.join(dataDir, username, 'images_index');
+}
+
+// 获取指定日期的索引文件路径
+function getIndexFilePath(username, dateString) {
+    const indexDir = getImagesIndexDir(username);
+    return path.join(indexDir, `${dateString}.json`);
+}
+
+// 读取指定日期的索引文件
+function readIndexFile(username, dateString) {
+    const indexPath = getIndexFilePath(username, dateString);
+    if (!fs.existsSync(indexPath)) {
+        return [];
+    }
+    try {
+        const content = fs.readFileSync(indexPath, 'utf8');
+        return JSON.parse(content);
+    } catch (error) {
+        console.error(`读取索引文件失败 ${indexPath}:`, error);
+        return [];
+    }
+}
+
+// 追加图片到索引（追加模式）
+function appendToIndexFile(username, imageMetadata) {
+    const dateString = getDateString(new Date(imageMetadata.shotDate));
+    const indexPath = getIndexFilePath(username, dateString);
+    
+    // 确保索引目录存在
+    const indexDir = getImagesIndexDir(username);
+    if (!fs.existsSync(indexDir)) {
+        fs.mkdirSync(indexDir, { recursive: true });
+    }
+    
+    // 读取现有索引（如果存在）
+    let images = [];
+    if (fs.existsSync(indexPath)) {
+        images = readIndexFile(username, dateString);
+    }
+    
+    // 检查是否已存在（避免重复）
+    const exists = images.some(img => img.filename === imageMetadata.filename);
+    if (!exists) {
+        images.push(imageMetadata);
+        // 按拍摄时间排序（最新的在前）
+        images.sort((a, b) => new Date(b.shotDate) - new Date(a.shotDate));
+        // 写入文件
+        fs.writeFileSync(indexPath, JSON.stringify(images, null, 2));
+    }
+}
+
+// 从索引中删除图片
+function removeFromIndexFile(username, filename, shotDate) {
+    if (!shotDate) {
+        // 如果没有提供shotDate，需要遍历所有索引文件查找
+        const indexDir = getImagesIndexDir(username);
+        if (!fs.existsSync(indexDir)) {
+            return;
+        }
+        
+        const dateFiles = fs.readdirSync(indexDir)
+            .filter(file => /^\d{4}-\d{2}-\d{2}\.json$/.test(file));
+        
+        for (const dateFile of dateFiles) {
+            const dateString = dateFile.replace('.json', '');
+            const indexPath = path.join(indexDir, dateFile);
+            const images = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+            const image = images.find(img => img.filename === filename);
+            
+            if (image) {
+                removeFromIndexFile(username, filename, image.shotDate);
+                return;
+            }
+        }
+        return;
+    }
+    
+    const dateString = getDateString(new Date(shotDate));
+    const indexPath = getIndexFilePath(username, dateString);
+    
+    if (!fs.existsSync(indexPath)) {
+        return;
+    }
+    
+    try {
+        const images = readIndexFile(username, dateString);
+        const newImages = images.filter(img => img.filename !== filename);
+        
+        if (newImages.length === 0) {
+            // 如果该日期没有图片了，删除索引文件
+            fs.unlinkSync(indexPath);
+        } else {
+            // 更新索引文件
+            fs.writeFileSync(indexPath, JSON.stringify(newImages, null, 2));
+        }
+    } catch (error) {
+        console.error(`删除索引失败 ${indexPath}:`, error);
+    }
+}
+
+// 从图片提取拍摄日期
+async function extractShotDate(filePath) {
+    try {
+        const metadata = await sharp(filePath).metadata();
+        
+        // 尝试从EXIF获取拍摄日期
+        if (metadata.exif) {
+            // EXIF日期格式通常是 "YYYY:MM:DD HH:mm:ss"
+            const exifDate = metadata.exif.DateTimeOriginal || 
+                           metadata.exif.DateTimeDigitized ||
+                           metadata.exif.DateTime;
+            
+            if (exifDate) {
+                // 解析EXIF日期格式 "2024:01:15 10:30:00"
+                const dateStr = exifDate.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
+                return new Date(dateStr);
+            }
+        }
+        
+        // 如果没有EXIF日期，使用文件创建时间
+        const stats = fs.statSync(filePath);
+        return stats.birthtime && stats.birthtime.getTime() > 0 ? stats.birthtime : stats.ctime;
+    } catch (error) {
+        console.error('提取拍摄日期失败:', error);
+        // 降级到文件时间
+        const stats = fs.statSync(filePath);
+        return stats.birthtime && stats.birthtime.getTime() > 0 ? stats.birthtime : stats.ctime;
+    }
+}
+
+// 格式化日期显示
+function formatDateDisplay(dateString) {
+    const date = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const dateOnly = new Date(date);
+    dateOnly.setHours(0, 0, 0, 0);
+    
+    if (dateOnly.getTime() === today.getTime()) {
+        return '今天';
+    } else if (dateOnly.getTime() === yesterday.getTime()) {
+        return '昨天';
+    } else {
+        // 格式化为 "2024年1月15日"
+        return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+    }
+}
+
+// 为已存在的图片生成索引（数据迁移）
+async function migrateExistingImages(username) {
+    const userUploadDir = path.join(uploadDir, username);
+    if (!fs.existsSync(userUploadDir)) {
+        return;
+    }
+    
+    const indexDir = getImagesIndexDir(username);
+    // 如果索引目录已存在且有文件，说明已经迁移过，跳过
+    if (fs.existsSync(indexDir) && fs.readdirSync(indexDir).length > 0) {
+        return;
+    }
+    
+    console.log(`开始为用户 ${username} 迁移现有图片索引...`);
+    const files = fs.readdirSync(userUploadDir)
+        .filter(file => IMAGE_EXTENSION_REGEX.test(file) && !file.includes('thumbnails'));
+    
+    let migratedCount = 0;
+    for (const file of files) {
+        try {
+            const filePath = path.join(userUploadDir, file);
+            const shotDate = await extractShotDate(filePath);
+            
+            const imageMetadata = {
+                filename: file,
+                shotDate: shotDate.toISOString(),
+                uploadDate: shotDate.toISOString(),
+                path: `/images/${username}/${encodeURIComponent(file)}`,
+                thumbnail: `/thumbnails/${username}/thumbnails/${encodeURIComponent(file)}`
+            };
+            
+            appendToIndexFile(username, imageMetadata);
+            migratedCount++;
+        } catch (error) {
+            console.error(`迁移图片 ${file} 失败:`, error);
+        }
+    }
+    
+    console.log(`用户 ${username} 索引迁移完成，共迁移 ${migratedCount} 张图片`);
+}
+
+// 生成缩略图并保存索引
 async function generateThumbnail(filePath, filename, username) {
     const { userThumbnailDir } = ensureDirectoriesExist(username);
     const thumbnailPath = path.join(userThumbnailDir, filename);
@@ -123,6 +325,19 @@ async function generateThumbnail(filePath, filename, username) {
             .withMetadata() // 保留EXIF信息
             .jpeg({ quality: THUMBNAIL_CONFIG.quality })
             .toFile(thumbnailPath);
+        
+        // 提取拍摄日期并保存索引
+        const shotDate = await extractShotDate(filePath);
+        const imageMetadata = {
+            filename: filename,
+            shotDate: shotDate.toISOString(),
+            uploadDate: new Date().toISOString(),
+            path: `/images/${username}/${encodeURIComponent(filename)}`,
+            thumbnail: `/thumbnails/${username}/thumbnails/${encodeURIComponent(filename)}`
+        };
+        
+        appendToIndexFile(username, imageMetadata);
+        
         return true;
     } catch (error) {
         console.error('生成缩略图失败:', error);
@@ -212,6 +427,9 @@ app.post('/api/images/delete', authenticateToken, (req, res) => {
             });
         }
         
+        // 从索引中删除图片
+        removeFromIndexFile(req.user.username, decodedFilename);
+        
         console.log('图片删除成功:', decodedFilename);
         res.json({ success: true });
     } catch (error) {
@@ -240,70 +458,83 @@ app.use('/api/thumbnails', express.static(path.join(__dirname, 'uploads'), {
     }
 }));
 
-// 获取所有图片列表
-app.get('/api/images', authenticateToken, (req, res) => {
+// 获取所有图片列表（按日期分组，支持分页）
+app.get('/api/images', authenticateToken, async (req, res) => {
     console.log('获取图片列表');
-    const userUploadDir = path.join(uploadDir, req.user.username);
-    if (!fs.existsSync(userUploadDir)) {
-        return res.json({ images: [], total: 0 });
+    const username = req.user.username;
+    
+    // 首次请求时，如果没有索引文件，执行数据迁移
+    const indexDir = getImagesIndexDir(username);
+    const userUploadDir = path.join(uploadDir, username);
+    
+    // 如果上传目录存在但索引目录不存在或为空，执行迁移
+    if (fs.existsSync(userUploadDir) && (!fs.existsSync(indexDir) || fs.readdirSync(indexDir).length === 0)) {
+        // 异步执行迁移，不阻塞响应
+        migrateExistingImages(username).catch(err => {
+            console.error('数据迁移失败:', err);
+        });
     }
-
+    
+    // 获取所有索引文件
+    if (!fs.existsSync(indexDir)) {
+        return res.json({ groups: [], total: 0, totalGroups: 0, page: 1, pageSize: 3, hasMore: false });
+    }
+    
+    const dateFiles = fs.readdirSync(indexDir)
+        .filter(file => /^\d{4}-\d{2}-\d{2}\.json$/.test(file))
+        .sort()
+        .reverse(); // 按日期倒序（最新的在前）
+    
+    // 分页参数
     const page = parseInt(req.query.page) || 1;
-    const pageSize = parseInt(req.query.pageSize) || 20;
+    const pageSize = parseInt(req.query.pageSize) || 3; // 每次加载3个日期组（3天）
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
-
-    const allFiles = fs.readdirSync(userUploadDir)
-        .filter(file => /\.(jpg|jpeg|png|gif)$/i.test(file) && !file.includes('thumbnails'))
-        .map(file => {
-            const filePath = path.join(userUploadDir, file);
-            const stats = fs.statSync(filePath);
-            // 检查 birthtime 是否存在且有效
-            const birthtime = stats.birthtime && stats.birthtime.getTime() > 0 ? stats.birthtime : null;
-            return {
-                name: file,
-                birthtime: birthtime,
-                ctime: stats.ctime
-            };
-        })
-        .sort((a, b) => {
-            // 如果两个文件都有有效的 birthtime，使用 birthtime 比较
-            if (a.birthtime && b.birthtime) {
-                return b.birthtime - a.birthtime;
-            }
-            // 如果只有 a 有有效的 birthtime，a 排在前面
-            if (a.birthtime) {
-                return -1;
-            }
-            // 如果只有 b 有有效的 birthtime，b 排在前面
-            if (b.birthtime) {
-                return 1;
-            }
-            // 如果都没有有效的 birthtime，使用 ctime 比较
-            return b.ctime - a.ctime;
-        })
-        .map(file => file.name);
-
-    const total = allFiles.length;
-    const files = allFiles.slice(start, end).map(file => {
-        // 移除/api前缀
-        const fullPath = `/images/${req.user.username}/${encodeURIComponent(file)}`;
-        const thumbnailPath = `/thumbnails/${req.user.username}/thumbnails/${encodeURIComponent(file)}`;
-        console.log('处理文件:', { file, fullPath, thumbnailPath });
-        return {
-            name: file,
-            path: fullPath,
-            thumbnail: thumbnailPath
-        };
-    });
-
-    console.log('图片列表:', { page, pageSize, total, files });
+    
+    const totalGroups = dateFiles.length;
+    const paginatedDateFiles = dateFiles.slice(start, end);
+    
+    // 读取当前页的索引并分组
+    const groups = [];
+    let totalImages = 0;
+    
+    for (const dateFile of paginatedDateFiles) {
+        const dateString = dateFile.replace('.json', '');
+        const images = readIndexFile(username, dateString);
+        
+        if (images.length > 0) {
+            groups.push({
+                date: dateString,
+                dateDisplay: formatDateDisplay(dateString),
+                images: images,
+                count: images.length
+            });
+            totalImages += images.length;
+        }
+    }
+    
+    // 计算总图片数（只在第一页时计算，后续页面可以复用前端计算）
+    let totalAllImages = 0;
+    if (page === 1 || req.query.includeTotal === 'true') {
+        // 只在第一页或明确要求时计算总数（避免每次都计算，提升性能）
+        for (const dateFile of dateFiles) {
+            const dateString = dateFile.replace('.json', '');
+            const images = readIndexFile(username, dateString);
+            totalAllImages += images.length;
+        }
+    } else {
+        // 其他页面返回0，让前端自己累加（或者前端可以通过第一页的总数来维护）
+        totalAllImages = 0;
+    }
+    
+    console.log('图片列表:', { page, pageSize, groups: groups.length, totalGroups, hasMore: end < totalGroups });
     res.json({
-        images: files,
-        total,
-        page,
-        pageSize,
-        hasMore: end < total
+        groups: groups,
+        total: totalAllImages, // 只有第一页返回总数，其他页面返回0
+        totalGroups: totalGroups,
+        page: page,
+        pageSize: pageSize,
+        hasMore: end < totalGroups
     });
 });
 

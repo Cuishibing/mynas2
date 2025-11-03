@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 配置信息
-REMOTE_HOST="10.42.0.1"
+REMOTE_HOST="192.168.0.190"
 REMOTE_USER="cui"
 REMOTE_DIR="/home/cui/Workspace/mynas2"
 SSH_KEY="~/.ssh/id_rsa"  # SSH密钥路径
@@ -56,6 +56,40 @@ transfer_files() {
     rm -rf $TEMP_DIR
 }
 
+# 执行 Docker 构建和启动
+deploy_docker() {
+    info "开始 Docker 部署..."
+    
+    info "1. 停止现有容器..."
+    ssh -i $SSH_KEY $REMOTE_USER@$REMOTE_HOST "cd $REMOTE_DIR && docker-compose down" || error "停止容器失败"
+    
+    info "2. 构建 Docker 镜像..."
+    ssh -i $SSH_KEY $REMOTE_USER@$REMOTE_HOST "cd $REMOTE_DIR && docker-compose build --no-cache" || error "构建镜像失败"
+    
+    info "3. 启动容器..."
+    ssh -i $SSH_KEY $REMOTE_USER@$REMOTE_HOST "cd $REMOTE_DIR && docker-compose up -d" || error "启动容器失败"
+    
+    info "Docker 部署完成！"
+}
+
+# 询问是否执行 Docker 部署
+ask_deploy_docker() {
+    echo ""
+    read -p "文件传输已完成，是否自动执行 Docker 重新构建和启动？(y/n): " -n 1 -r
+    echo ""
+    
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        deploy_docker
+    else
+        info "跳过 Docker 部署"
+        info "如需手动部署，请在远程服务器上执行以下命令："
+        info "cd $REMOTE_DIR"
+        info "docker-compose down"
+        info "docker-compose build --no-cache"
+        info "docker-compose up -d"
+    fi
+}
+
 # 主函数
 main() {
     info "开始部署流程..."
@@ -64,11 +98,9 @@ main() {
     transfer_files
     
     info "文件传输完成！"
-    info "请在远程服务器上执行以下命令进行部署："
-    info "cd $REMOTE_DIR"
-    info "docker-compose down"
-    info "docker-compose build --no-cache"
-    info "docker-compose up -d"
+    
+    # 询问是否执行 Docker 部署
+    ask_deploy_docker
 }
 
 # 执行主函数
